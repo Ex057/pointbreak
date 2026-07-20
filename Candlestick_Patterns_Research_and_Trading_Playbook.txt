@@ -1,0 +1,792 @@
+================================================================================
+CANDLESTICK PATTERNS: DETAILED SUMMARY, EXPANDED RESEARCH & REAL-LIFE
+TRADING PLAYBOOK
+(Based on the document "Candlestick Patterns - Every Trader Should Know",
+expanded with additional concepts: Fair Value Gaps, Support & Resistance,
+and Trendlines)
+================================================================================
+
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+PART 1  - Candlestick Anatomy (the foundation)
+PART 2  - Single-Candle Patterns (summary of the book, in plain language)
+PART 3  - Two-Candle Patterns
+PART 4  - Three-Candle (and multi-candle) Patterns
+PART 5  - Continuation Patterns
+PART 6  - Rare / Exotic Patterns covered by the book
+PART 7  - Additional Examples & Modern Research (added to strengthen your study)
+PART 8  - Fair Value Gaps (FVG) - what the book doesn't cover
+PART 9  - Support & Resistance
+PART 10 - Trendlines
+PART 11 - THE PLAYBOOK: Combining Candles + FVG + S/R + Trendlines in real life
+PART 12 - Trade Management, Risk & Checklist
+PART 13 - Common Mistakes & Final Notes
+
+================================================================================
+PART 1 - CANDLESTICK ANATOMY
+================================================================================
+Every candle tells a four-part story: Open, High, Low, Close (OHLC).
+
+- REAL BODY: the distance between the open and the close. A white/green body
+  means buyers won the session (close above open). A black/red body means
+  sellers won (close below open).
+- UPPER SHADOW (wick): the distance from the top of the body to the session
+  high. It shows where buyers tried to push price but failed to hold.
+- LOWER SHADOW: the distance from the bottom of the body to the session low.
+  It shows where sellers pushed price down but were rejected.
+
+Key interpretation principle from the book: candles are a visual record of the
+BATTLE between buyers (bulls) and sellers (bears). Long bodies = conviction.
+Long shadows = rejection. Tiny bodies = indecision. Everything else is a
+combination of these three ideas.
+
+================================================================================
+PART 2 - SINGLE-CANDLE PATTERNS (BOOK SUMMARY)
+================================================================================
+
+1. DOJI
+   - Open and close are virtually equal, producing a cross shape.
+   - Meaning: perfect equilibrium; neither side is winning.
+   - Context matters: after a long uptrend, the bulls' streak of victories is
+     suddenly in doubt. After a long downtrend, it hints the bulls are finally
+     finding the courage to buy and the tide may turn.
+   - Book's example stock: INET (Doji Star near a bottom, followed by a rally).
+
+2. LONG-LEGGED DOJI
+   - A more dramatic doji: price traveled far intraday (usually a big upper
+     shadow) before profit-taking dragged it back.
+   - A close below the candle's midpoint signals notable weakness.
+   - Book's example: K (Kingsmen), where it appeared near a swing high.
+
+3. GRAVESTONE DOJI
+   - Open, close, and low are all near the same level; a long upper shadow
+     remains. Price rallied hard intraday, could not hold altitude, and
+     collapsed back to the open by the close.
+   - The book calls it "probably the most ominous candle of all" - it is a
+     classic topping signal.
+
+4. DRAGONFLY DOJI
+   - The mirror image: price opened, sold off hard, and buyers drove it all
+     the way back to the open. Long lower shadow, no body.
+   - Fairly infrequent; when it appears it often resolves bullishly,
+     PROVIDED the stock is not already overbought (the book suggests checking
+     Bollinger Bands and stochastics before trusting it).
+   - Book's example: DSGT at a swing low.
+
+5. HAMMER
+   - Appears after a prolonged DOWNTREND. Strong selling early in the session,
+     but the market recovers to close near or above the open - it is
+     "hammering out" a bottom.
+   - Validity conditions per the book:
+     a) A definite downtrend must precede it.
+     b) Lower shadow at least 2x the size of the body.
+     c) The next day should show continued BUYING (confirmation).
+     d) No (or tiny) upper shadow; a white body is slightly stronger.
+   - Book's example: KCE.
+
+6. HANGING MAN (the "hangman")
+   - Identical shape to the hammer but appears after an extended UPTREND.
+     Looks like a hanging figure with legs swinging beneath.
+   - It forms because dip-buyers rush in during an intraday sell-off, but the
+     very existence of that sell-off is the warning.
+   - Validity conditions: definite uptrend; lower shadow 2x the body;
+     continued SELLING the next day; little to no upper shadow. A black body
+     is slightly more bearish.
+   - Book's example: MC.
+
+7. INVERTED HAMMER
+   - Occurs only after a sustained downtrend (stock likely oversold).
+   - Long upper shadow, small body at the bottom. Trapped longs sell into any
+     strength, which is why confirmation the next day matters.
+   - Book's example: STEC.
+
+8. SHOOTING STAR
+   - The bearish twin of the inverted hammer; appears only at a potential
+     market TOP, ideally after a gap higher.
+   - The market rallies sharply intraday (longs feel in full control), then
+     profit-taking erases it; the close returns near the open, leaving a
+     small body with a large upper shadow and little/no lower shadow.
+   - Validity: uptrend; upper shadow 2x body; continued selling next day.
+   - Book's example: WICE.
+
+9. MARUBOZU
+   - Japanese for "close-cropped": a long candle with no upper or lower
+     shadow (or nearly none).
+   - White marubozu = extreme buying conviction; black marubozu = sellers
+     eager to flee.
+   - The book stresses watching the NEXT day: if there is follow-through, the
+     stock tends to trend in that direction for several sessions.
+   - Book's example: INTUCH.
+
+10. SPINNING TOP / HIGH WAVE
+    - Spinning top: small real body, small overall range. Combined with low
+      volume it signals trader disinterest / indecision.
+    - High Wave: small body but with LONG shadows on both sides - an active
+      tug of war with no winner. On high volume, it reveals general confusion
+      about direction.
+    - Practical use per the book: technical analysts see these and "join the
+      sidelines," waiting for confirmation before committing.
+    - Book's examples: SET INDEX (spinning tops), SF (high wave + engulfing).
+
+================================================================================
+PART 3 - TWO-CANDLE PATTERNS (BOOK SUMMARY)
+================================================================================
+
+1. BULLISH ENGULFING
+   - After a significant downtrend, a white candle opens below the prior
+     close and closes above the prior black candle's open - its body swallows
+     the previous body (shadows need not be engulfed).
+   - Book's example: MINT.
+
+2. BEARISH ENGULFING
+   - The mirror image after a significant uptrend: a large black body
+     swallows the prior white body.
+   - Book's example: ECL.
+
+3. DARK CLOUD COVER
+   - After an uptrend, a black candle opens ABOVE the previous day's high and
+     then closes more than halfway into the prior white body.
+   - The deeper the penetration, the more powerful (approaching a bearish
+     engulfing). Extra weight if it occurs at a resistance area on strong
+     end-of-day volume.
+   - Book's example: SCN.
+
+4. PIERCING PATTERN
+   - The bullish mirror: after a downtrend (often a 5-15 day mini-trend), a
+     white candle opens below the prior day's LOW and closes more than
+     halfway into the prior black body.
+   - Book's example: SET INDEX.
+
+5. BULLISH HARAMI
+   - A large black body followed by a smaller white body contained within it
+     ("harami" = pregnant in Japanese; the small candle is the baby).
+   - Implies the downtrend's momentum has stalled; stock poised to move up.
+   - Shadows can be any size in theory, but in practice they stay inside the
+     prior body.
+   - Book's example: CPF.
+
+6. BEARISH HARAMI
+   - After an uptrend: a large white body followed by a small dark body
+     inside it. Book's example: BBL (shown with a harami cross + EMA10,
+     Force Index and Directional Movement confirmation - note how the book
+     itself combines candles with indicators).
+
+7. TWEEZERS (TOP / BOTTOM)
+   - Two nearby sessions share (almost) the same HIGH (tweezers top) or the
+     same LOW (tweezers bottom).
+   - The match can be body-to-body, shadow-to-shadow, or shadow-to-body; the
+     point is the market rejected the same price twice.
+   - Book's example: BH.
+
+8. HOMING PIGEON
+   - Downtrend; long black candle, then a SMALLER black candle whose body is
+     fully inside the first body (like a harami where both candles are
+     black).
+   - Confirmation: a following candle closing below the pattern's lowest low
+     CANCELS it; a strong up day confirms the reversal. Shorts covering
+     usually lifts volume above the recent norm.
+   - Book's example: IRPC.
+
+9. MATCHING LOW
+   - Two black candles closing at exactly the same low after a downtrend.
+     The market's failure to close below that level twice tells the bears a
+     support floor has been hit.
+
+10. MEETING LINES
+    - Bullish: long black candle, then a long white candle that closes at
+      (more or less) the SAME level as the prior close.
+    - Bearish: the mirror after an uptrend.
+    - Statistics quoted by the book: bullish version ~56% up resolution;
+      bearish ~49/51 - i.e., these are weak signals needing confirmation.
+
+11. ON NECK / IN NECK / THRUSTING LINES (a family of weak bounces in a
+    downtrend - all usually CONTINUATION bearish)
+    - ON NECK: after a long black candle, the next day gaps down but bounces
+      only to the previous day's LOW. Weak bounce = sellers resume.
+    - IN NECK: bounce reaches the previous CLOSE or a hair above it. Some
+      short covering, but no trend change.
+    - THRUSTING: bounce closes near but slightly BELOW the midpoint of the
+      prior black body. Stronger than On/In Neck, but still weaker than a
+      true Piercing Line (which closes ABOVE the midpoint).
+    - The psychology: each failed bounce that cannot reclaim meaningful
+      ground emboldens sellers to press again.
+
+12. SEPARATING LINES (continuation)
+    - Bullish: in an uptrend, a black candle is followed by a white candle
+      that OPENS at the same level as the black candle's open and rallies.
+      Book stats: ~72% resolve up.
+    - Bearish version mirrors it in a downtrend (~63% resolve down).
+
+13. ABOVE / BELOW THE STOMACH
+    - Reversal signals where the second candle opens at or beyond the
+      midpoint of the first candle's real body. Modest reliability
+      (roughly 40-66% depending on variant per the book's rankings).
+
+14. KICKER
+    - One of the most explosive patterns. Bullish version: stock is falling,
+      last red candle closes at the bottom of its range, then the next day
+      price GAPS OPEN above the previous day's high and close. This "shock
+      event" forces shorts to cover and drags in new longs. Reversed for the
+      bearish version.
+    - Book's example: MINT.
+
+================================================================================
+PART 4 - THREE-CANDLE AND MULTI-CANDLE PATTERNS (BOOK SUMMARY)
+================================================================================
+
+1. MORNING STAR (bullish, 3 candles)
+   - Day 1: large dark candle in a downtrend.
+   - Day 2: small-bodied "star" (indecision) - the book notes a perfect star
+     gaps away, but small shadows are tolerated.
+   - Day 3: large white candle recovering at least halfway into Day 1's body,
+     ideally on strong volume.
+   - Book's example: VIBHA.
+
+2. EVENING STAR (bearish, 3 candles)
+   - Day 1: long white candle in an uptrend (bulls in full control).
+   - Day 2: a star that GAPS HIGHER (black or white, small body, often a
+     large upper shadow).
+   - Day 3: black candle retreating substantially into Day 1's body. The
+     deeper the retreat, the more powerful. A gap between Day 2 and Day 3
+     strengthens it further but is rare in equities.
+   - Book's example: TRUE.
+
+3. THREE BLACK CROWS (bearish)
+   - Three consecutive long black candles "sitting like crows in a tall
+     tree." Most predictive when the first crow closes below the prior
+     candle's real body.
+   - Each day OPENS higher than the prior close (looks like recovery) but
+     CLOSES at a new low - sellers regain control every session.
+   - Infrequent, but swing traders should be very alert when it appears.
+   - Book's example: LPN.
+
+4. THREE WHITE SOLDIERS (bullish)
+   - Most potent after an extended decline plus sideways consolidation.
+   - Three long white candles; each opens within (ideally the upper half of)
+     the prior day's range and closes near its high with little/no upper
+     shadow.
+   - The first soldier is itself a reversal candle ending the downtrend.
+   - Book's example: BEM.
+
+5. STICK SANDWICH
+   - Bullish version (in a downtrend): black candle (new low), white candle
+     opening above its close, then a black candle that opens above the white
+     candle's close but closes back at the FIRST candle's closing level -
+     sandwiching the white candle. Book stats: resolves down 62% / up 38% -
+     i.e., treat with caution and demand confirmation.
+   - Bearish version mirrors this in an uptrend.
+
+6. TRI-STAR DOJI
+   - Three consecutive dojis in a downtrend, the middle one dipping below
+     the other two. Extreme indecision at a potential exhaustion point.
+     Book stats: ~52% up vs 48% down - weak alone, needs confirmation.
+
+7. ABANDONED BABY (bullish)
+   - Downtrend; long black candle; a DOJI that gaps DOWN (abandoned below);
+     then a long white candle opening above the doji.
+   - One of the strongest reversal signals (book's efficiency rank A-,
+     ~70% up resolution). Confirmation is optional but recommended.
+
+8. UNIQUE THREE RIVER BOTTOM
+   - Resembles a morning star. Day 1: black candle engulfing what follows.
+     Day 2: small black body that opens higher, trades at a NEW LOW (long
+     lower shadow), then closes near its high. Day 3: short white candle
+     below Day 2. A subtle bottoming structure in a downtrend.
+
+9. DOWNSIDE GAP TWO RABBITS (bullish)
+   - Downtrend; long black candle; a short white candle GAPS DOWN; a second
+     white candle opens at/below the prior open and closes above the prior
+     close (but still below Day 1's close). The two white candles are the
+     "rabbits ready to jump out of their burrow."
+
+10. THREE STARS IN THE SOUTH (bullish)
+    - Three black candles with successively LOWER closes but HIGHER lows -
+      the downtrend is visibly decaying. Day 1 has a long lower shadow and
+      almost no upper shadow; the final day is a small black marubozu.
+
+11. CONCEALING BABY SWALLOW (bullish)
+    - Four black candles: two falling black marubozus, a short black candle
+      that gaps down but trades up into the prior body (long upper shadow),
+      then a fourth black candle that completely engulfs the third including
+      its shadow. Despite the new low, the downtrend has eroded.
+
+12. LADDER BOTTOM (bullish, 5 candles)
+    - Three strong black candles (like three black crows), a fourth black
+      candle with a long upper shadow (first sign of buying), then a strong
+      white candle opening above the prior day's body.
+
+13. AFTER BOTTOM GAP UP (bullish, 5 candles)
+    - Three black candles stair-stepping down (the third gapping down), a
+      white Day 4 covering the gap, and a strong white Day 5 gapping up.
+      The color change plus the gap up is the reversal signal.
+
+14. DESCENT BLOCK / DELIBERATION BLOCK (bullish counterparts of bearish
+    blocks)
+    - Descent Block: three black candles with lower closes, but bodies
+      shrinking and lower shadows lengthening - the decline is losing force.
+    - Deliberation Block: two normal/long black candles then a short black
+      candle or doji gapping down - the final hesitant candle betrays
+      seller fatigue.
+
+15. SQUEEZE ALERT (bullish, 3 candles)
+    - A black candle followed by two candles with LOWER HIGHS and HIGHER
+      LOWS (a contracting triangle in three bars). Colors don't matter.
+      Especially prone to upside breaks after a strong down-move.
+
+16. ADVANCE BLOCK (bearish, 3 candles)
+    - Three white candles in an uptrend with progressively SHORTER bodies
+      and progressively TALLER upper shadows; each opens inside the prior
+      body. The rally is running out of fuel. Confirmed when a falling
+      candle takes out the midpoint of the FIRST candle's body.
+
+17. DELIBERATION / STALLED PATTERN (bearish, 3 candles)
+    - Two long white candles, then a third with a SHORT body (or doji) with
+      a tall upper shadow opening near the second candle's close. Note the
+      book's stats: it resolved UP 77% of the time - i.e., historically it
+      "stalls" more than it reverses. Demand confirmation (a drop through
+      the second candle's body midpoint) before shorting.
+
+18. MAT HOLD (continuation, 5 candles)
+    - Bullish: long white candle; GAP UP to a small black candle; two more
+      small-bodied candles drifting down but holding above Day 1's low; then
+      a long white candle closing above Day 2's high. Book stats: 78%
+      continue up - one of the strongest continuation signals listed.
+    - Bearish version mirrors it (78% continue down). Examples: JAS, QTC.
+
+19. RISING THREE METHODS (continuation)
+    - Uptrend; long white candle; three small candles (usually black)
+      contained within Day 1's range; a fifth long white candle closing
+      above Day 1's close. Book stats: 74% continue up. Example: SPA.
+
+20. FALLING THREE METHODS (continuation)
+    - The bearish mirror: 71% continue down per the book. Example: DTAC.
+
+21. THREE LINE STRIKE
+    - Bearish version (after a downtrend... note: the book's own stats show
+      it resolving UP 84% of the time): three black candles stepping down,
+      then a giant white candle engulfing all three. Often a bullish
+      exhaustion event despite the name.
+    - Bullish version: three white candles, then a giant black engulfing
+      candle - resolves DOWN 65% per the book. Lesson: the "strike" candle
+      frequently signals the trend is flipping, not continuing.
+
+================================================================================
+PART 5 - BROADER STRUCTURE PATTERNS (BOOK SUMMARY)
+================================================================================
+
+1. DUMPLING TOP
+   - An uptrend that rounds over into a sideways drift of small candles, then
+     GAPS DOWN into a downtrend. Rare; the gap down is the key confirmation.
+   - Book's example: BTS.
+
+2. FRY PAN BOTTOM
+   - The mirror image: a downtrend rounds out through a quiet sideways
+     "frying pan," then GAPS UP into a new uptrend.
+   - Book's example: BLA.
+
+3. TOWER TOP
+   - A long white candle, a cluster of spinning tops (indecision), then a
+     long black candle - the "towers" flank a sagging middle. Book stats:
+     67% resolve down. Example: MDX.
+
+4. TOWER BOTTOM
+   - Long black candle, spinning-top cluster, long white candle. 67% up.
+     Example: SMPC.
+
+5. LOW PRICE GAPPING PLAY (bearish continuation)
+   - Downtrend; long black candle; up to eleven small spinning tops hovering
+     near the low; then a black candle GAPS DOWN. 69% continue down.
+   - Example: AP.
+
+6. HIGH PRICE GAPPING PLAY (bullish continuation)
+   - The mirror: consolidation near the high of a long white candle, then a
+     gap up. 69% continue up.
+
+7. 8-10-12-13 NEW PRICE LINES
+   - Eight (or more) consecutive candles each printing a HIGHER HIGH in an
+     uptrend. Check the final candle's close: closing over the top of the
+     prior real body favors more upside; closing below it warns of a fall.
+   - Example: FTSE.
+
+8. SCOOP PATTERN
+   - Sideways indecision, a price dip (weak hands selling), then a recovery.
+     If price rises back above the indecision zone, a new uptrend begins;
+     if not, the pattern fails. Shaped like a scoop/ladle.
+
+9. J-HOOK / INVERTED J-HOOK (continuation)
+   - J-Hook: rapid rally (1), bearish signal and pullback (2), indecision
+     basing (3), then price re-approaches the prior high - clearing it
+     launches a fresh leg up (4). Failure at the high creates a Double Top
+     instead. Examples: KCE, SAPPE.
+   - Inverted version mirrors this in downtrends.
+
+10. CRADLE PATTERN (bullish reversal)
+    - Downtrend; long black candle; a cradle of indecision candles (dojis,
+      spinning tops, hammers); then a long white candle showing the strength
+      of the new rise. Example: SMPC.
+
+================================================================================
+PART 6 - KEY TAKEAWAYS FROM THE BOOK'S STATISTICS
+================================================================================
+The book attaches "Common Rank" and "Efficiency Rank" plus UP/DOWN percentages
+to many patterns. Synthesizing them:
+
+STRONGEST signals it lists (by % agreement):
+  - Mat Hold (78% continuation)
+  - Deliberation/Stalled (77% - but UP, i.e., it usually does NOT reverse)
+  - Rising Three Methods (74%) / Falling Three Methods (71%)
+  - Abandoned Baby (70% reversal)
+  - Bullish Separating Lines (72%)
+  - High/Low Price Gapping Plays (69%)
+  - Tower Top/Bottom (67%)
+  - Three Line Strike (84% - but in the OPPOSITE direction of its name)
+
+WEAKEST / coin-flip signals it lists:
+  - Tri-Star Doji (52/48)
+  - Meeting Lines (~50-56)
+  - Above/Below the Stomach (40-66 range)
+  - Stick Sandwich (38/62 against the "bullish" label)
+
+PRACTICAL LESSON: never trade a pattern in isolation. Even the book's own
+data shows several famous "reversal" patterns statistically resolve the other
+way. Patterns are meaningful only WHERE they appear (support, resistance,
+trendline, FVG) and only WITH confirmation.
+
+================================================================================
+PART 7 - ADDITIONAL EXAMPLES & MODERN RESEARCH (ADDED FOR YOUR STUDY)
+================================================================================
+The book uses 2015-2016 Thai stocks (SET). To strengthen your research, study
+the same patterns on these widely available, well-documented charts (pull them
+up on TradingView and verify each one yourself - self-verification is the
+real training):
+
+1. HAMMER AT MAJOR LOWS
+   - S&P 500, March 2020 COVID low (weekly chart): the week of 23 March 2020
+     printed a huge lower wick after a waterfall decline - a textbook
+     hammer-style rejection that preceded a multi-year rally.
+   - Bitcoin, weekly chart around the 2018 bear-market floor (~$3,100-3,200,
+     December 2018): long lower wicks and a tweezers-style double rejection
+     before the 2019 recovery.
+
+2. BEARISH ENGULFING / DARK CLOUD AT TOPS
+   - Nasdaq 100, November 2021 (daily/weekly): repeated upper-wick rejections
+     and engulfing candles near the all-time high preceded the 2022 bear
+     market.
+   - Crude oil (WTI), March 2022 spike above $120: massive upper shadows and
+     engulfing reversals as the parabolic move exhausted.
+
+3. MORNING STAR
+   - EUR/USD daily around late September 2022 (the ~0.95 low): a cluster of
+     small-bodied indecision candles between two large opposite-color
+     candles marked the multi-decade low before a 6-month rally.
+
+4. THREE WHITE SOLDIERS
+   - Look at strong earnings-gap recoveries in large caps (e.g., mega-cap
+     tech in January 2023 daily charts): three consecutive full-bodied green
+     candles out of a basing range - exactly the "decline + consolidation +
+     soldiers" sequence the book describes.
+
+5. THREE BLACK CROWS
+   - Study bank stocks in early March 2023 (US regional banking stress):
+     consecutive long red candles opening near prior closes and closing at
+     new lows - crows in action before further breakdown.
+
+6. KICKER
+   - Any major earnings surprise produces kickers. Example type: a stock in
+     a downtrend that gaps above the prior day's high on results and never
+     looks back. Build a list from recent earnings seasons and measure
+     follow-through over the next 5-10 sessions.
+
+7. MARUBOZU + FOLLOW-THROUGH
+   - Index breakout days (e.g., days major indices exit multi-week ranges)
+     frequently print near-marubozu candles; check the book's claim that
+     early follow-through predicts several more sessions of trend.
+
+RESEARCH TIPS TO STRENGTHEN THE STUDY:
+  - Backtest, don't trust: pick ONE pattern, mark the last 50 occurrences on
+    a liquid instrument, and record: context (trend), location (S/R? FVG?),
+    confirmation (yes/no), and outcome after 3, 5, 10 bars.
+  - Academic literature is mixed on candlesticks used ALONE; profitability
+    improves materially when patterns are filtered by location (support/
+    resistance) and trend context. This matches the book's own validity
+    conditions ("the stock must have been in a definite downtrend/uptrend").
+  - Higher timeframes (daily, weekly) produce cleaner, less noisy patterns
+    than 1-5 minute charts, where spreads and noise degrade the signal.
+
+================================================================================
+PART 8 - FAIR VALUE GAPS (FVG)
+================================================================================
+The book does not cover FVGs; here is the concept and how it links to candles.
+
+DEFINITION:
+A Fair Value Gap is a three-candle structure where the middle candle is so
+large and fast that the wicks of candle 1 and candle 3 do NOT overlap. The
+untraded void between candle 1's high and candle 3's low (bullish FVG), or
+candle 1's low and candle 3's high (bearish FVG), is the "gap."
+
+- BULLISH FVG: created by an aggressive up-move. The gap sits BELOW current
+  price and often acts as a magnet/support when price retraces into it.
+- BEARISH FVG: created by an aggressive down-move. The gap sits ABOVE price
+  and often acts as resistance on a retracement.
+
+WHY IT MATTERS:
+Fast moves mean one side overwhelmed the other so quickly that price was
+never "fairly" auctioned in that zone. Markets frequently return to these
+inefficiencies to fill orders left behind, then continue in the original
+direction. Traders treat the FVG as a high-probability reaction zone.
+
+HOW TO TRADE IT:
+1. Identify a strong impulsive leg (often contains a marubozu-type candle).
+2. Mark the FVG zone from the 3-candle structure.
+3. Wait for price to RETRACE into the zone (many use the midpoint of the
+   gap, the "consequent encroachment," as the ideal entry area).
+4. Demand a candlestick trigger INSIDE the zone: hammer, bullish engulfing,
+   morning star (for bullish FVGs); shooting star, bearish engulfing,
+   evening star (for bearish FVGs).
+5. Stop-loss beyond the far side of the gap; target the origin high/low or
+   the next liquidity pool.
+
+KEY NUANCES:
+- FVGs in the direction of the higher-timeframe trend are far more reliable
+  than counter-trend gaps.
+- A gap that is fully traded through and closed beyond usually flips roles
+  (a failed bullish FVG becomes resistance) - similar to broken support
+  becoming resistance.
+- Fresh (untested) gaps outperform gaps that have been tapped repeatedly.
+
+================================================================================
+PART 9 - SUPPORT & RESISTANCE (S/R)
+================================================================================
+DEFINITION:
+- SUPPORT: a price zone where buying demand has repeatedly halted declines.
+- RESISTANCE: a zone where supply has repeatedly capped rallies.
+Think ZONES, not exact lines - draw a band covering the cluster of wicks and
+closes, not a single pixel-perfect price.
+
+HOW LEVELS FORM:
+- Prior swing highs/lows (the most basic and most watched).
+- Round psychological numbers (100, 1.1000 on EUR/USD, 50,000 on BTC).
+- High-volume consolidation areas (price "accepted" there before).
+- Gap edges and FVG boundaries.
+- Moving averages on higher timeframes (dynamic S/R).
+
+CORE PRINCIPLES:
+1. ROLE REVERSAL (flip): broken support becomes resistance and vice versa.
+   The retest of a broken level is one of the highest-quality trade
+   locations in all of technical analysis.
+2. TOUCH COUNT: 2-3 clean rejections make a level credible; but a level
+   tested MANY times in quick succession is being eroded (each test consumes
+   the resting orders) and often breaks.
+3. CONFLUENCE: a level gains power when it coincides with a trendline, an
+   FVG, a Fibonacci retracement, or a higher-timeframe level.
+
+HOW THE BOOK'S PATTERNS PLUG IN:
+The book itself hints at this: it says to pay particular attention to a Dark
+Cloud Cover "if it occurs at an important resistance area." Generalize that
+rule: EVERY reversal candle in Part 2-4 is graded by its location.
+- Hammer AT SUPPORT = A-grade. Hammer in the middle of nowhere = noise.
+- Shooting star AT RESISTANCE after an extended rally = A-grade short setup.
+- Tweezers bottom sitting exactly ON a prior swing low = double rejection of
+  a known demand zone.
+
+================================================================================
+PART 10 - TRENDLINES
+================================================================================
+DEFINITION & DRAWING RULES:
+- UPTREND LINE: connect two (validated by a third touch) HIGHER LOWS,
+  extended right. It slopes up and acts as dynamic support.
+- DOWNTREND LINE: connect LOWER HIGHS; slopes down; dynamic resistance.
+- Draw on wicks OR bodies - just be consistent. Two touches suggest a line;
+  the third touch validates it; every later touch is tradeable.
+
+USES:
+1. TREND FILTER: the book repeats "the stock must have been in a definite
+   uptrend/downtrend" for almost every pattern. A trendline is the simplest
+   objective way to define that. Above a rising trendline = only take
+   bullish reversal patterns at pullbacks; below a falling line = favor
+   bearish patterns on rallies.
+2. ENTRY LOCATION: the 3rd/4th/5th touch of a valid trendline is a location
+   to hunt for a trigger candle (hammer on an uptrend-line touch; shooting
+   star on a downtrend-line touch).
+3. BREAK + RETEST: a decisive close through a mature trendline, followed by
+   a retest of the line from the other side, is a classic trend-change
+   entry - and the retest candle is very often one of the book's patterns
+   (engulfing, piercing, morning star).
+
+WARNINGS:
+- Steep trendlines (>45-60 degrees) break quickly; the break often just
+  means the trend is slowing, not reversing.
+- Constantly redrawing a line to fit price means there is no line. Respect
+  only lines the market has respected.
+
+================================================================================
+PART 11 - THE PLAYBOOK: PUTTING IT ALL TOGETHER IN REAL LIFE
+================================================================================
+The professional sequence is TOP-DOWN and always the same:
+
+  CONTEXT (trend)  ->  LOCATION (S/R, trendline, FVG)  ->  TRIGGER (candle)
+  ->  CONFIRMATION  ->  RISK-DEFINED ENTRY  ->  MANAGEMENT
+
+STEP 1: HIGHER-TIMEFRAME CONTEXT (Weekly/Daily)
+  - Is the market in an uptrend (higher highs + higher lows / above a rising
+    trendline), a downtrend, or a range?
+  - Decision rule: trade WITH the higher-timeframe trend by default.
+    Counter-trend reversal patterns need extra confluence (major S/R plus
+    exhaustion signals like gravestone doji, three black crows, or an
+    abandoned baby).
+
+STEP 2: MAP LOCATIONS ON THE TRADING TIMEFRAME (Daily/4H/1H)
+  - Mark horizontal S/R zones (swing highs/lows, flip zones).
+  - Draw the active trendlines.
+  - Mark fresh FVGs from recent impulsive legs.
+  - CONFLUENCE ZONES = where two or more of these overlap. These are your
+    ONLY hunting grounds. If price is not at a zone, you have no trade -
+    you wait.
+
+STEP 3: WAIT FOR THE TRIGGER CANDLE AT THE ZONE
+  Bullish zone (support + rising trendline + bullish FVG):
+    - Hammer / dragonfly doji (rejection)
+    - Bullish engulfing / piercing line (aggression)
+    - Morning star / tweezers bottom / bullish harami (transition)
+  Bearish zone (resistance + falling trendline + bearish FVG):
+    - Shooting star / gravestone doji
+    - Bearish engulfing / dark cloud cover
+    - Evening star / tweezers top / hanging man
+
+STEP 4: CONFIRMATION (the book insists on this - honor it)
+  - The book's validity rules repeatedly require the NEXT day to continue in
+    the signal's direction (continued buying after a hammer; continued
+    selling after a hanging man / shooting star).
+  - Practical options:
+    a) Conservative: wait for the next candle to close beyond the trigger
+       candle's high (long) or low (short), OR
+    b) Aggressive: enter on the break of the trigger candle's extreme with a
+       stop beyond its opposite extreme.
+  - Volume adds conviction: reversal candles on above-average volume (the
+    book highlights this for morning stars, dark cloud covers, and homing
+    pigeons) carry more weight.
+
+STEP 5: ENTRY, STOP, TARGET
+  - ENTRY: at confirmation (per Step 4) or on a retrace to the trigger
+    candle's midpoint / the FVG midpoint for better R:R.
+  - STOP-LOSS: beyond the structural invalidation point, NOT an arbitrary
+    pip count:
+      * Long at support: below the zone / below the hammer's low / below
+        the FVG's lower boundary.
+      * Short at resistance: above the zone / above the shooting star's
+        high / above the FVG's upper boundary.
+  - TARGETS:
+      * T1 = nearest opposing S/R level or opposing FVG (take partials).
+      * T2 = the origin of the prior impulse / the next major zone.
+  - Only take trades offering at least 1:2 risk-to-reward; skip anything
+    less regardless of how pretty the candle looks.
+
+STEP 6: MANAGE
+  - After T1, move the stop to breakeven or trail it under successive
+    higher lows (using your trendline as the trailing guide).
+  - If the confirmation candle FAILS (e.g., the day after a hammer closes
+    below the hammer's low), exit immediately - the pattern is dead, and
+    per the book's own statistics, failed patterns often run hard the
+    other way (see Three Line Strike).
+
+--------------------------------------------------------------------------------
+WORKED EXAMPLE SCENARIOS (TEMPLATES TO REHEARSE)
+--------------------------------------------------------------------------------
+SCENARIO A - Trend-continuation long (highest probability template):
+  1. Daily chart in an uptrend, above a rising trendline.
+  2. Price pulls back into a confluence zone: old resistance-turned-support
+     + a fresh bullish FVG + the 3rd touch of the trendline.
+  3. Trigger: hammer forms inside the FVG; next day opens and pushes above
+     the hammer's high (confirmation = "continued buying").
+  4. Entry on the break; stop below the hammer's low AND the FVG; target
+     the prior swing high (T1) and a measured extension (T2).
+  This is precisely the book's hammer checklist, upgraded with location.
+
+SCENARIO B - Reversal short at a major top:
+  1. Extended uptrend (8+ new price lines - the book's own exhaustion count)
+     into a weekly resistance zone.
+  2. Bearish trigger cluster: shooting star, then a bearish engulfing or
+     dark cloud cover on strong volume AT the zone (the book explicitly
+     upgrades dark cloud at "an important resistance area" with "strong
+     end-of-day volume").
+  3. Confirmation: next candle closes below the cluster's midpoint.
+  4. Entry short; stop above the pattern high; T1 = rising trendline below;
+     T2 = the last bullish FVG (gaps get filled).
+
+SCENARIO C - Break-and-retest trend change:
+  1. Mature uptrend line breaks with a decisive marubozu-type close below.
+  2. Price rallies back to retest the broken line, which now coincides with
+     a bearish FVG created by the breakdown leg.
+  3. Trigger at the retest: evening star or bearish harami.
+  4. Short with stop above the retest high; target the next support shelf.
+
+SCENARIO D - Range trading:
+  1. Clear horizontal range (Tower/Dumpling-style consolidations qualify).
+  2. Buy only bullish triggers (tweezers bottom, piercing) at range support;
+     sell only bearish triggers at range resistance.
+  3. Abandon the range plan the moment a gapping play (High/Low Price
+     Gapping Play) or a breakout marubozu appears - those are the book's
+     continuation signals telling you the range is resolving.
+
+================================================================================
+PART 12 - RISK MANAGEMENT & PRE-TRADE CHECKLIST
+================================================================================
+RISK RULES (non-negotiable):
+  - Risk a fixed fraction per trade: 0.5%-2% of account equity. At 1% risk,
+    a 10-trade losing streak = ~10% drawdown: survivable. At 10% risk, the
+    same streak is ruin.
+  - Position size = (Account x Risk%) / (Entry - Stop distance).
+  - Never widen a stop. Never average into a loser.
+  - Cap total open risk (e.g., max 3 concurrent positions / 3% aggregate).
+  - Journal EVERY trade: screenshot at entry, the pattern, the location, the
+    confirmation, and the outcome. Your journal becomes your personal
+    version of the book's UP%/DOWN% statistics - on the markets YOU trade.
+
+PRE-TRADE CHECKLIST (print this):
+  [ ] What is the higher-timeframe trend? Am I with it or against it?
+  [ ] Is price AT a marked zone (S/R, trendline touch, FVG)? If not - NO TRADE.
+  [ ] Is there a valid trigger candle from the playbook?
+  [ ] Does the pattern meet the book's validity conditions (prior trend,
+      shadow-to-body ratios, gap requirements)?
+  [ ] Do I have confirmation (follow-through candle / volume)?
+  [ ] Is R:R at least 1:2 to the first logical target?
+  [ ] Where EXACTLY is my invalidation (stop)? Position sized to it?
+  [ ] Any news/earnings imminent that could gap through my stop?
+  [ ] Am I emotionally neutral (not revenge trading, not FOMO)?
+
+================================================================================
+PART 13 - COMMON MISTAKES & FINAL NOTES
+================================================================================
+MISTAKES THE BOOK'S OWN DATA WARNS ABOUT:
+  1. Trading pattern NAMES instead of statistics - e.g., the "Bearish" Three
+     Line Strike resolved UP 84% of the time, and the "bearish" Deliberation
+     pattern resolved UP 77% of the time. Verify; don't assume.
+  2. Ignoring the prior-trend requirement. A hammer without a preceding
+     downtrend is just a candle with a wick.
+  3. Skipping confirmation. Nearly every pattern description in the book
+     says "confirmation is required by the candles that follow."
+  4. Trading indecision candles (dojis, spinning tops, high waves) as
+     signals. The book is explicit: they mean JOIN THE SIDELINES and wait.
+
+MISTAKES FROM THE BROADER TOOLKIT:
+  5. Taking triggers in the middle of nowhere (no zone = no trade).
+  6. Treating S/R as exact lines and getting wicked out - use zones and
+     place stops beyond the ZONE, not the line.
+  7. Chasing filled FVGs or 10th-touch trendlines - freshness matters.
+  8. Over-leveraging a "high probability" setup. 78% (Mat Hold) still fails
+     more than 1 in 5 times.
+
+FINAL SYNTHESIS:
+Candlestick patterns are the LANGUAGE of the chart - they tell you what
+buyers and sellers just did. Support/resistance, trendlines, and FVGs are the
+MAP - they tell you where that language matters. Confirmation and risk
+management are the LAW - they keep you solvent while your statistical edge
+plays out. The book gives you the vocabulary and validity rules; this
+playbook gives you the grammar. Rehearse the four scenario templates on
+historical charts until spotting them is reflexive, journal your live
+results, and let your own data - not memorized pattern names - drive which
+setups you keep trading.
+
+================================================================================
+END OF DOCUMENT
+================================================================================

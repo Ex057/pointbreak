@@ -1,0 +1,14 @@
+.DS_Store
+.env
+*.pyc
+__pycache__/
+.venv/
+venv/
+node_modules/
+dist/
+.vite/
+*.sqlite
+*.sqlite3
+*.db
+.pytest_cache/
+.qodo/

@@ -1,0 +1,37 @@
+{
+  "name": "tradeguard-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "TradeGuard web app — React SPA: pair selector, 6 layer toggles, lightweight-charts canvas, verdict panel, alerts feed, stats, settings.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-router-dom": "^6.23.0",
+    "lightweight-charts": "^4.1.0",
+    "zustand": "^4.5.0",
+    "axios": "^1.7.0",
+    "date-fns": "^3.6.0"
+  },
+  "devDependencies": {
+    "vite": "^5.2.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "typescript": "^5.4.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "vitest": "^1.6.0",
+    "eslint": "^9.0.0"
+  },
+  "notes": {
+    "lightweight-charts": "Engine output maps directly: sr_zones -> createPriceLine / area series, FVGs -> area series, trendlines -> line series with 2 points, future.entries -> setMarkers. Layer toggles = series.applyOptions({visible}).",
+    "live-data": "Native browser WebSocket to the FastAPI gateway (no extra lib needed); axios for REST scan/stats/settings calls.",
+    "push": "Browser notifications via the Push API + service worker; backend uses pywebpush.",
+    "claude-code": "Versions are caret ranges — run npm install and let the lockfile resolve latest compatible."
+  }
+}
