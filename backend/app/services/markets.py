@@ -154,6 +154,7 @@ _active_pair_id: str | None = None
 _active_pair_code: str | None = None
 _active_timeframes: list[str] = []
 _active_granularities: list[int] = []
+_quote_codes: list[str] = []
 _latest_feed_error: str | None = None
 _configured_at: float | None = None
 
@@ -203,7 +204,7 @@ def _reset_feed_cache():
 
 
 def build_catalog() -> tuple[list[Market], dict]:
-    global _active_pair_id, _active_pair_code, _active_timeframes, _active_granularities, _latest_feed_error, _configured_at
+    global _active_pair_id, _active_pair_code, _active_timeframes, _active_granularities, _quote_codes, _latest_feed_error, _configured_at
     log.info("build_catalog data_source=%s requested_markets=%s", DATA_SOURCE, len(PREFERRED_MARKETS))
     available_symbols: set[str] | None = None
     availability_error: str | None = None
@@ -246,6 +247,7 @@ def build_catalog() -> tuple[list[Market], dict]:
     _active_pair_code = None
     _active_timeframes = []
     _active_granularities = []
+    _quote_codes = []
     _latest_feed_error = availability_error
     _configured_at = None
 
@@ -287,8 +289,8 @@ def fallback_catalog(error: str | None = None) -> tuple[list[Market], dict]:
 def get_feed_status() -> dict:
     status = dict(DERIV_CONFIG["status"])
     status["mode"] = DATA_SOURCE
-    status["requested"] = 1 if _active_pair_id else 0
-    status["resolved"] = 1 if status.get("connected") and _active_pair_id else 0
+    status["requested"] = len(_quote_codes)
+    status["resolved"] = sum(1 for code in _quote_codes if code in DERIV_CONFIG["prices"])
     status["active_pair"] = _active_pair_id
     status["active_timeframes"] = list(_active_timeframes)
     ready_tick = bool(_active_pair_code and _active_pair_code in DERIV_CONFIG["prices"])
@@ -300,6 +302,36 @@ def get_feed_status() -> dict:
     status["configured_at"] = _configured_at
     status["error"] = _latest_feed_error
     return status
+
+
+def prepare_quote_feed(markets: list[Market]) -> None:
+    """Keep lightweight tick subscriptions open for every available market.
+
+    Candle history remains scoped to the chart currently being analysed; quote
+    monitoring is deliberately market-wide and survives chart switches.
+    """
+    global _quote_codes, _latest_feed_error, _configured_at
+    if DATA_SOURCE != "deriv":
+        return
+    _quote_codes = list(dict.fromkeys(market.code for market in markets if market.live))
+    if not _quote_codes:
+        return
+    _configured_at = time.time()
+    try:
+        start_deriv_feed(
+            symbols=_quote_codes,
+            granularities=[],
+            candle_symbols=[],
+            app_id=DERIV_APP_ID,
+            url=DERIV_URL or None,
+            api_token=DERIV_API_TOKEN or "",
+            wait=False,
+            candles_count=CANDLE_HISTORY_BARS,
+            candles_maxlen=CANDLE_CACHE_MAXLEN,
+        )
+    except Exception as exc:
+        _latest_feed_error = str(exc)
+        log.exception("Failed to configure market-wide quote feed")
 
 
 def prepare_live_feed(market: Market, timeframes: list[str]) -> None:
@@ -326,8 +358,6 @@ def prepare_live_feed(market: Market, timeframes: list[str]) -> None:
             "configuring live feed pair=%s code=%s timeframes=%s",
             market.id, market.code, wanted,
         )
-        if not same_pair:
-            _reset_feed_cache()
         _latest_feed_error = None
         _active_pair_id = market.id
         _active_pair_code = market.code
@@ -337,8 +367,9 @@ def prepare_live_feed(market: Market, timeframes: list[str]) -> None:
 
         try:
             start_deriv_feed(
-                symbols=[market.code],
+                symbols=_quote_codes or [market.code],
                 granularities=granularities,
+                candle_symbols=[market.code],
                 app_id=DERIV_APP_ID,
                 url=DERIV_URL or None,
                 api_token=DERIV_API_TOKEN or "",

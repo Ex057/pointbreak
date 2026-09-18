@@ -27,13 +27,11 @@ from .services.markets import (
     latest_ohlc,
     live_price_value,
     load_candles,
+    prepare_quote_feed,
 )
 from .services.monitor import monitor
 from .services import ai_analysis, execution, learning, topdown, verdict as verdict_service
 from .services.scan import scan as run_scan
-
-# The pair the monitor watches on startup.
-FAVOURITE_PAIR = "xauusd"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 log = logging.getLogger("tradeguard.api")
@@ -49,6 +47,7 @@ async def lifespan(app: FastAPI):
         catalog, feed_status = fallback_catalog(str(exc))
     app.state.catalog = {item.id: item for item in catalog}
     app.state.feed_status = feed_status
+    prepare_quote_feed(catalog)
     log.info(
         "startup complete data_source=%s feed_connected=%s resolved=%s requested=%s error=%s",
         DATA_SOURCE,
@@ -57,12 +56,6 @@ async def lifespan(app: FastAPI):
         feed_status.get("requested"),
         feed_status.get("error"),
     )
-    # start the always-on monitor on the favourite pair
-    fav = app.state.catalog.get(FAVOURITE_PAIR) or next(iter(app.state.catalog.values()), None)
-    if fav is not None:
-        settings = repo.get_user_settings()
-        monitor.set_favourite(fav, topdown.timeframe_roles(settings.get("trader_mode"))["entry_tf"], settings.get("trader_mode"))
-        monitor.start()
     try:
         yield
     finally:
@@ -246,10 +239,49 @@ def price(pair: str = Query(...), tf: str | None = Query(None)):
     available (fixture mode, market closed, or the feed is on another pair)."""
     market = _pair_entry(pair)
     tick = get_live_tick(market)
-    active_tf = tf or monitor.status().get("timeframe") or topdown.timeframe_roles(repo.get_user_settings().get("trader_mode"))["entry_tf"]
+    active_tf = tf or topdown.timeframe_roles(repo.get_user_settings().get("trader_mode"))["entry_tf"]
     if tick is None:
         return {"pair": market.id, "source": "none", "price": None, "ohlc": latest_ohlc(market, active_tf)}
     return {"pair": market.id, **tick, "ohlc": latest_ohlc(market, active_tf)}  # tick carries its own source (deriv|yahoo)
+
+
+@app.get("/quotes")
+def quotes(tf: str | None = Query(None)):
+    """One lightweight snapshot for the complete market catalog.
+
+    Quotes are monitored independently of the chart currently selected. Candle
+    analysis remains on demand so a broad watch board does not multiply the
+    expensive top-down scan workload.
+    """
+    active_tf = tf or topdown.timeframe_roles(
+        repo.get_user_settings().get("trader_mode")
+    )["entry_tf"]
+    rows = []
+    for market in app.state.catalog.values():
+        tick = get_live_tick(market)
+        ohlc = latest_ohlc(market, active_tf)
+        if tick is None and ohlc is not None:
+            tick = {
+                "source": "candle",
+                "price": float(ohlc["close"]),
+                "epoch": ohlc.get("time"),
+                "stale": DATA_SOURCE != "fixture",
+                "realtime": False,
+                "quote_kind": "close",
+            }
+        rows.append({
+            "pair": market.id,
+            "display": market.display,
+            "category": market.category,
+            "available": bool(market.live),
+            "price": tick.get("price") if tick else None,
+            "source": tick.get("source") if tick else "none",
+            "epoch": tick.get("epoch") if tick else None,
+            "stale": tick.get("stale", True) if tick else True,
+            "realtime": tick.get("realtime", False) if tick else False,
+            "ohlc": ohlc,
+        })
+    return {"generated_at": int(datetime.now(timezone.utc).timestamp()), "quotes": rows}
 
 
 @app.websocket("/ws/price")
@@ -258,7 +290,7 @@ async def price_stream(ws: WebSocket, pair: str, tf: str | None = None):
         market = _pair_entry(pair)
         await ws.accept()
         last_payload = None
-        active_tf = tf or monitor.status().get("timeframe") or topdown.timeframe_roles(repo.get_user_settings().get("trader_mode"))["entry_tf"]
+        active_tf = tf or topdown.timeframe_roles(repo.get_user_settings().get("trader_mode"))["entry_tf"]
         while True:
             tick = get_live_tick(market) or {"pair": market.id, "source": "none", "price": None}
             payload = {"pair": market.id, **tick, "ohlc": latest_ohlc(market, active_tf)}

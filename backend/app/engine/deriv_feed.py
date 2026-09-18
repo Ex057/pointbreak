@@ -110,6 +110,7 @@ class DerivWebSocketClient:
         self,
         symbols,
         granularities=(60,),
+        candle_symbols=None,
         app_id=1089,
         url=None,
         api_token="",
@@ -128,6 +129,7 @@ class DerivWebSocketClient:
         self.url = _resolve_url(url, app_id)
         self.api_token = api_token or ""
         self.symbols = list(dict.fromkeys(symbols))
+        self.candle_symbols = list(dict.fromkeys(candle_symbols if candle_symbols is not None else symbols))
         self.granularities = list(dict.fromkeys(int(g) for g in granularities))
         self.candles_count = candles_count
         self.candles_maxlen = candles_maxlen
@@ -157,7 +159,7 @@ class DerivWebSocketClient:
         self._subscribed_ticks: set[str] = set()
         self._subscribed_candles: set[tuple[str, int]] = set()
 
-        for s in self.symbols:
+        for s in self.candle_symbols:
             self.candles.setdefault(s, {})
             for g in self.granularities:
                 self.candles[s].setdefault(
@@ -196,7 +198,7 @@ class DerivWebSocketClient:
         with self._lock:
             return list(self.candles.get(symbol, {}).get(int(granularity), []))
 
-    def configure(self, symbols, granularities):
+    def configure(self, symbols, granularities, candle_symbols=None):
         """Update desired subscriptions without restarting the websocket.
 
         Adding timeframes for the current symbol is incremental. Switching the
@@ -204,12 +206,21 @@ class DerivWebSocketClient:
         the same transport connection.
         """
         next_symbols = list(dict.fromkeys(symbols))
+        next_candle_symbols = list(dict.fromkeys(
+            candle_symbols if candle_symbols is not None else next_symbols
+        ))
         next_granularities = list(dict.fromkeys(int(g) for g in granularities))
         with self._lock:
             symbol_changed = next_symbols != self.symbols
+            candle_symbols_changed = next_candle_symbols != self.candle_symbols
+            granularities_removed = any(
+                granularity not in next_granularities
+                for granularity in self.granularities
+            )
             self.symbols = next_symbols
+            self.candle_symbols = next_candle_symbols
             self.granularities = next_granularities
-            for symbol in self.symbols:
+            for symbol in self.candle_symbols:
                 self.candles.setdefault(symbol, {})
                 for granularity in self.granularities:
                     self.candles[symbol].setdefault(
@@ -219,8 +230,9 @@ class DerivWebSocketClient:
             return self
         if symbol_changed:
             self._send({"forget_all": "ticks"})
-            self._send({"forget_all": "candles"})
             self._subscribed_ticks.clear()
+        if candle_symbols_changed or granularities_removed:
+            self._send({"forget_all": "candles"})
             self._subscribed_candles.clear()
         self._subscribe_desired()
         return self
@@ -369,6 +381,7 @@ class DerivWebSocketClient:
             if symbol not in self._subscribed_ticks:
                 self._send({"ticks": symbol, "subscribe": 1})
                 self._subscribed_ticks.add(symbol)
+        for symbol in list(self.candle_symbols):
             for granularity in list(self.granularities):
                 key = (symbol, granularity)
                 if key in self._subscribed_candles:
@@ -546,7 +559,11 @@ def start_deriv_feed(symbols, granularities=(60,), app_id=1089,
         if wait:
             _client.wait_ready(timeout=10)
     else:
-        _client.configure(symbols, granularities)
+        _client.configure(
+            symbols,
+            granularities,
+            candle_symbols=kwargs.get("candle_symbols"),
+        )
     return _client
 
 

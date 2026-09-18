@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#07111f" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>TradeGuard Mobile Concept</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --canvas: #030712;
+        --phone: #07111f;
+        --surface: #0c1828;
+        --surface-2: #101f32;
+        --line: rgba(148, 163, 184, 0.16);
+        --text: #f8fafc;
+        --muted: #8da0b8;
+        --violet: #8b7cff;
+        --cyan: #35d6cb;
+        --green: #5ee0a0;
+        --red: #ff7188;
+        --amber: #ffc766;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 12% 10%, rgba(79, 70, 229, .22), transparent 30%),
+          radial-gradient(circle at 88% 18%, rgba(14, 165, 233, .13), transparent 24%),
+          var(--canvas);
+        font: 14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      button, select { font: inherit; }
+      .board-head {
+        max-width: 1480px;
+        margin: 0 auto;
+        padding: 38px 28px 10px;
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        align-items: end;
+      }
+      .brand { color: var(--cyan); font-size: 12px; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
+      .board-head h1 { max-width: 760px; margin: 8px 0 8px; font-size: clamp(28px, 4vw, 48px); line-height: 1.02; letter-spacing: -.045em; }
+      .board-head p { max-width: 660px; margin: 0; color: var(--muted); }
+      .board-badge { border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; color: #cbd5e1; white-space: nowrap; }
+
+      .screens {
+        max-width: 1480px;
+        margin: 0 auto;
+        padding: 28px 28px 52px;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(280px, 1fr));
+        gap: 24px;
+        align-items: start;
+      }
+      .screen-wrap { display: grid; gap: 12px; }
+      .screen-label { display: flex; justify-content: space-between; color: #dbeafe; font-size: 12px; }
+      .screen-label span:last-child { color: var(--muted); }
+      .phone {
+        width: 100%;
+        min-height: 710px;
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, .2);
+        border-radius: 30px;
+        background: var(--phone);
+        box-shadow: 0 26px 70px rgba(0, 0, 0, .34), inset 0 1px 0 rgba(255,255,255,.05);
+        display: flex;
+        flex-direction: column;
+      }
+      .statusbar { display: flex; justify-content: space-between; align-items: center; padding: 13px 18px 8px; font-size: 10px; color: #cbd5e1; }
+      .status-icons { letter-spacing: .12em; }
+      .appbar { padding: 8px 18px 13px; display: flex; justify-content: space-between; align-items: center; }
+      .app-title { display: grid; gap: 1px; }
+      .app-title strong { font-size: 18px; letter-spacing: -.025em; }
+      .app-title span { color: var(--muted); font-size: 10px; }
+      .avatar { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 11px; display: grid; place-items: center; color: var(--cyan); background: var(--surface); }
+      .screen-body { flex: 1; padding: 0 14px 14px; overflow: hidden; }
+      .eyebrow { color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+      .live { display: inline-flex; align-items: center; gap: 5px; color: var(--green); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
+      .live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px rgba(94,224,160,.12); }
+
+      .search { margin: 2px 0 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; color: var(--muted); background: var(--surface); font-size: 11px; }
+      .chips { display: flex; gap: 6px; margin-bottom: 10px; overflow: hidden; }
+      .chip { border: 1px solid var(--line); border-radius: 999px; padding: 5px 9px; color: var(--muted); font-size: 9px; white-space: nowrap; }
+      .chip.on { border-color: rgba(139,124,255,.55); color: #ddd8ff; background: rgba(139,124,255,.12); }
+      .quote-list { display: grid; gap: 7px; }
+      .quote-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; padding: 10px 11px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); }
+      .quote-row.selected { border-color: rgba(53,214,203,.5); background: linear-gradient(135deg, rgba(53,214,203,.1), var(--surface)); }
+      .quote-name { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 650; }
+      .quote-icon { width: 27px; height: 27px; border-radius: 9px; display: grid; place-items: center; background: var(--surface-2); color: #dbeafe; font-size: 9px; }
+      .quote-value { text-align: right; font-size: 12px; font-weight: 750; font-variant-numeric: tabular-nums; }
+      .quote-meta { grid-column: 1 / -1; display: flex; justify-content: space-between; padding-left: 35px; color: var(--muted); font-size: 8.5px; }
+      .up { color: var(--green); } .down { color: var(--red); }
+
+      .market-head { display: flex; justify-content: space-between; align-items: end; margin: 2px 2px 10px; }
+      .market-price strong { display: block; font-size: 25px; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+      .market-price span { font-size: 9px; color: var(--muted); }
+      .tf { display: flex; gap: 4px; }
+      .tf span { padding: 4px 6px; font-size: 8px; color: var(--muted); border-radius: 6px; }
+      .tf .on { color: #fff; background: #243451; }
+      .chart-card { height: 245px; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: linear-gradient(180deg, #0b1728, #08121f); position: relative; }
+      .chart-card svg { width: 100%; height: 100%; }
+      .chart-label { position: absolute; right: 8px; padding: 2px 6px; font-size: 8px; border-radius: 5px; }
+      .chart-label.target { top: 24%; background: rgba(94,224,160,.15); color: var(--green); }
+      .chart-label.entry { top: 54%; background: rgba(255,199,102,.15); color: var(--amber); }
+      .chart-label.kill { top: 72%; background: rgba(255,113,136,.15); color: var(--red); }
+      .structure-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 9px; }
+      .mini-card { padding: 9px; border: 1px solid var(--line); background: var(--surface); border-radius: 11px; }
+      .mini-card strong { display: block; margin-top: 3px; font-size: 10px; }
+      .mini-card span { color: var(--muted); font-size: 8px; }
+      .layer-row { margin-top: 9px; display: flex; gap: 6px; flex-wrap: wrap; }
+      .layer-row span { padding: 5px 7px; border-radius: 7px; font-size: 8px; background: var(--surface); color: var(--muted); border: 1px solid var(--line); }
+      .layer-row .on { color: var(--cyan); border-color: rgba(53,214,203,.35); }
+
+      .verdict { padding: 15px; border: 1px solid rgba(255,199,102,.25); border-radius: 17px; background: linear-gradient(135deg, rgba(255,199,102,.12), rgba(255,199,102,.035)); }
+      .verdict-top { display: flex; justify-content: space-between; align-items: center; }
+      .wait { color: var(--amber); font-weight: 800; letter-spacing: .08em; font-size: 10px; }
+      .confidence { color: var(--muted); font-size: 9px; }
+      .verdict h2 { margin: 9px 0 5px; font-size: 20px; line-height: 1.1; letter-spacing: -.035em; }
+      .verdict p { margin: 0; color: #c2cedd; font-size: 10.5px; }
+      .outlook-levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 11px; }
+      .outlook-levels div { padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: rgba(3,7,18,.3); }
+      .outlook-levels span { color: var(--muted); font-size: 7.5px; }
+      .outlook-levels strong { display: block; margin-top: 2px; font-size: 10px; }
+      .section-title { display: flex; justify-content: space-between; align-items: center; margin: 14px 2px 8px; }
+      .section-title strong { font-size: 11px; }
+      .section-title span { color: var(--muted); font-size: 8px; }
+      .timeline { display: grid; gap: 7px; }
+      .step { display: grid; grid-template-columns: 25px 1fr; gap: 9px; padding: 9px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+      .step-no { width: 25px; height: 25px; display: grid; place-items: center; border-radius: 8px; background: var(--surface-2); color: var(--muted); font-size: 9px; }
+      .step.active { border-color: rgba(255,199,102,.35); }
+      .step.active .step-no { color: var(--amber); background: rgba(255,199,102,.1); }
+      .step strong { display: block; font-size: 10px; }
+      .step span { color: var(--muted); font-size: 8.5px; }
+      .kill-note { margin-top: 8px; padding: 9px 10px; border-left: 3px solid var(--red); border-radius: 8px; background: rgba(255,113,136,.06); color: #f7a4b3; font-size: 8.5px; }
+
+      .score-card { padding: 15px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+      .score-top { display: flex; justify-content: space-between; align-items: center; }
+      .score-ring { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--cyan) 0 68%, #1b2a3f 68%); position: relative; }
+      .score-ring::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--surface); }
+      .score-ring strong { position: relative; z-index: 1; font-size: 15px; }
+      .score-copy h2 { margin: 4px 0 3px; font-size: 17px; }
+      .score-copy p { margin: 0; color: var(--muted); font-size: 9px; max-width: 165px; }
+      .evidence { margin-top: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+      .evidence div { padding: 8px; border-radius: 9px; background: var(--surface-2); }
+      .evidence strong { display: block; font-size: 11px; }
+      .evidence span { color: var(--muted); font-size: 7.5px; }
+      .review-list { display: grid; gap: 7px; }
+      .review-item { padding: 10px 11px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+      .review-item header { display: flex; justify-content: space-between; gap: 8px; }
+      .review-item strong { font-size: 10px; }
+      .review-item header span { font-size: 8px; color: var(--green); }
+      .review-item header span.block { color: var(--amber); }
+      .review-item p { margin: 5px 0 0; color: var(--muted); font-size: 8.5px; }
+      .improve { margin-top: 9px; border-radius: 14px; padding: 12px; background: linear-gradient(135deg, rgba(139,124,255,.15), rgba(53,214,203,.06)); border: 1px solid rgba(139,124,255,.25); }
+      .improve strong { font-size: 10px; }
+      .improve p { margin: 4px 0 0; color: #c8d0df; font-size: 8.5px; }
+
+      .bottom-nav { margin-top: auto; min-height: 62px; border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(4, 1fr); background: rgba(7,17,31,.96); }
+      .nav-item { display: grid; place-items: center; align-content: center; gap: 3px; color: #60738c; font-size: 8px; }
+      .nav-item b { font-size: 14px; font-weight: 500; line-height: 1; }
+      .nav-item.on { color: var(--cyan); }
+
+      @media (max-width: 1180px) {
+        .screens { grid-template-columns: repeat(2, minmax(280px, 360px)); justify-content: center; }
+      }
+      @media (max-width: 720px) {
+        .board-head { padding: 24px 18px 4px; align-items: start; flex-direction: column; }
+        .board-badge { display: none; }
+        .screens { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; justify-content: start; padding: 22px 18px 38px; gap: 16px; }
+        .screen-wrap { min-width: min(88vw, 350px); scroll-snap-align: center; }
+        .phone { min-height: 700px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="board-head">
+      <div>
+        <div class="brand">TradeGuard · mobile concept</div>
+        <h1>Market guidance in your pocket.</h1>
+        <p>A portable strategy companion focused on broad quote monitoring, deep chart context, projected scenarios, and evidence-led improvement—without balances or a paper ledger.</p>
+      </div>
+      <div class="board-badge">4 primary screens · swipe on mobile</div>
+    </header>
+
+    <main class="screens">
+      <section class="screen-wrap">
+        <div class="screen-label"><strong>01 · Markets</strong><span>All quotes</span></div>
+        <div class="phone">
+          <div class="statusbar"><span>09:41</span><span class="status-icons">● ◒ 5G</span></div>
+          <div class="appbar"><div class="app-title"><strong>Markets</strong><span>21 quotes monitored</span></div><div class="avatar">TG</div></div>
+          <div class="screen-body">
+            <div class="search">⌕ Search any market</div>
+            <div class="chips"><span class="chip on">All</span><span class="chip">Synthetic</span><span class="chip">Forex</span><span class="chip">Metals</span></div>
+            <div class="quote-list">
+              <div class="quote-row selected"><div class="quote-name"><span class="quote-icon">V25</span>Volatility 25</div><div class="quote-value">1,284.73</div><div class="quote-meta"><span class="live">live</span><span class="up">+0.84%</span></div></div>
+              <div class="quote-row"><div class="quote-name"><span class="quote-icon">XAU</span>Gold / USD</div><div class="quote-value">3,681.42</div><div class="quote-meta"><span class="live">live</span><span class="down">−0.18%</span></div></div>
+              <div class="quote-row"><div class="quote-name"><span class="quote-icon">V50</span>Volatility 50</div><div class="quote-value">214.508</div><div class="quote-meta"><span class="live">live</span><span class="up">+1.06%</span></div></div>
+              <div class="quote-row"><div class="quote-name"><span class="quote-icon">EU</span>EUR / USD</div><div class="quote-value">1.17642</div><div class="quote-meta"><span class="live">live</span><span class="up">+0.11%</span></div></div>
+              <div class="quote-row"><div class="quote-name"><span class="quote-icon">V75</span>Volatility 75</div><div class="quote-value">589,942.8</div><div class="quote-meta"><span class="live">live</span><span class="down">−0.42%</span></div></div>
+              <div class="quote-row"><div class="quote-name"><span class="quote-icon">BTC</span>Bitcoin / USD</div><div class="quote-value">117,205.3</div><div class="quote-meta"><span>delayed</span><span class="up">+1.24%</span></div></div>
+            </div>
+          </div>
+          <nav class="bottom-nav"><span class="nav-item on"><b>⌁</b>Markets</span><span class="nav-item"><b>⌗</b>Chart</span><span class="nav-item"><b>◇</b>Outlook</span><span class="nav-item"><b>↗</b>Strategy</span></nav>
+        </div>
+      </section>
+
+      <section class="screen-wrap">
+        <div class="screen-label"><strong>02 · Chart</strong><span>Analysis drill-down</span></div>
+        <div class="phone">
+          <div class="statusbar"><span>09:41</span><span class="status-icons">● ◒ 5G</span></div>
+          <div class="appbar"><div class="app-title"><strong>Volatility 25</strong><span>Day Trader · top-down analysis</span></div><div class="avatar">⋯</div></div>
+          <div class="screen-body">
+            <div class="market-head"><div class="market-price"><strong>1,284.73</strong><span><i class="live">live</i> · +0.84% today</span></div><div class="tf"><span>5m</span><span class="on">15m</span><span>1H</span><span>4H</span></div></div>
+            <div class="chart-card">
+              <svg viewBox="0 0 320 245" preserveAspectRatio="none" aria-label="V25 chart concept">
+                <defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#35d6cb" stop-opacity=".26"/><stop offset="1" stop-color="#35d6cb" stop-opacity="0"/></linearGradient></defs>
+                <g stroke="#1c2d42" stroke-width="1"><path d="M0 45H320M0 90H320M0 135H320M0 180H320"/><path d="M55 0V245M110 0V245M165 0V245M220 0V245M275 0V245"/></g>
+                <rect x="0" y="126" width="320" height="26" fill="#ffc766" opacity=".08"/><rect x="0" y="54" width="320" height="18" fill="#5ee0a0" opacity=".06"/>
+                <path d="M0 190 C22 175,35 185,53 166 S86 143,104 157 S137 142,151 118 S180 107,196 123 S226 96,242 104 S270 81,286 91 S307 62,320 69 L320 245 L0 245Z" fill="url(#area)"/>
+                <path d="M0 190 C22 175,35 185,53 166 S86 143,104 157 S137 142,151 118 S180 107,196 123 S226 96,242 104 S270 81,286 91 S307 62,320 69" fill="none" stroke="#35d6cb" stroke-width="2.2"/>
+                <path d="M0 163 C58 158,91 151,135 144 S213 119,320 101" fill="none" stroke="#8b7cff" stroke-width="1.3" opacity=".8"/>
+                <circle cx="196" cy="123" r="4" fill="#ffc766"/><path d="M196 123 L244 84" stroke="#ffc766" stroke-dasharray="4 4" opacity=".8"/>
+              </svg>
+              <span class="chart-label target">Target 1,312</span><span class="chart-label entry">Watch 1,276–1,282</span><span class="chart-label kill">Invalid &lt; 1,264</span>
+            </div>
+            <div class="structure-row"><div class="mini-card"><span>4H bias</span><strong class="up">Bullish</strong></div><div class="mini-card"><span>1H setup</span><strong>Demand</strong></div><div class="mini-card"><span>15m trigger</span><strong class="down">Missing</strong></div></div>
+            <div class="section-title"><strong>Visible layers</strong><span>tap to filter</span></div>
+            <div class="layer-row"><span class="on">Demand</span><span class="on">S/R</span><span>FVG</span><span class="on">EMA 21</span><span>Patterns</span></div>
+            <div class="section-title"><strong>Structure note</strong><span>4H</span></div>
+            <div class="mini-card"><span>Higher highs and higher lows remain intact. Price is pulling toward the nearest qualified demand zone; the directional context is bullish, but entry evidence is incomplete.</span></div>
+          </div>
+          <nav class="bottom-nav"><span class="nav-item"><b>⌁</b>Markets</span><span class="nav-item on"><b>⌗</b>Chart</span><span class="nav-item"><b>◇</b>Outlook</span><span class="nav-item"><b>↗</b>Strategy</span></nav>
+        </div>
+      </section>
+
+      <section class="screen-wrap">
+        <div class="screen-label"><strong>03 · Outlook</strong><span>Projection vs action</span></div>
+        <div class="phone">
+          <div class="statusbar"><span>09:41</span><span class="status-icons">● ◒ 5G</span></div>
+          <div class="appbar"><div class="app-title"><strong>Outlook</strong><span>Volatility 25 · 15m confirmation</span></div><div class="avatar">↻</div></div>
+          <div class="screen-body">
+            <article class="verdict">
+              <div class="verdict-top"><span class="wait">ACTION · WAIT</span><span class="confidence">moderate evidence</span></div>
+              <h2>Potential buy setup</h2>
+              <p>The higher-timeframe context is aligned, but price still owes a bullish close from the active demand zone.</p>
+              <div class="outlook-levels"><div><span>Watch zone</span><strong>1,276–1,282</strong></div><div><span>Trigger</span><strong>&gt; 1,289</strong></div><div><span>Projection</span><strong>1,312</strong></div></div>
+            </article>
+            <div class="section-title"><strong>Expected path</strong><span>scenario, not promise</span></div>
+            <div class="timeline">
+              <div class="step"><span class="step-no">✓</span><div><strong>Directional context</strong><span>4H bullish structure and moving-average bias agree.</span></div></div>
+              <div class="step active"><span class="step-no">2</span><div><strong>Price tests demand</strong><span>Wait for 1,276–1,282. Do not chase the middle of the move.</span></div></div>
+              <div class="step"><span class="step-no">3</span><div><strong>Confirmation closes</strong><span>15m rejection or micro-BOS above 1,289 changes action to BUY READY.</span></div></div>
+              <div class="step"><span class="step-no">4</span><div><strong>Reassess the projection</strong><span>Recalculate invalidation and target from the actual trigger candle.</span></div></div>
+            </div>
+            <div class="kill-note"><strong>Thesis dies if:</strong> V25 closes below 1,264. A failed buy thesis does not automatically become a sell.</div>
+          </div>
+          <nav class="bottom-nav"><span class="nav-item"><b>⌁</b>Markets</span><span class="nav-item"><b>⌗</b>Chart</span><span class="nav-item on"><b>◇</b>Outlook</span><span class="nav-item"><b>↗</b>Strategy</span></nav>
+        </div>
+      </section>
+
+      <section class="screen-wrap">
+        <div class="screen-label"><strong>04 · Strategy</strong><span>Improve the method</span></div>
+        <div class="phone">
+          <div class="statusbar"><span>09:41</span><span class="status-icons">● ◒ 5G</span></div>
+          <div class="appbar"><div class="app-title"><strong>Strategy review</strong><span>V25 · Day Trader · demand setups</span></div><div class="avatar">i</div></div>
+          <div class="screen-body">
+            <article class="score-card">
+              <div class="score-top"><div class="score-copy"><span class="eyebrow">Evidence strength</span><h2>Developing</h2><p>Promising structure, but the sample is too small for a probability claim.</p></div><div class="score-ring"><strong>68</strong></div></div>
+              <div class="evidence"><div><strong>24</strong><span>setups observed</span></div><div><strong>54%</strong><span>confirmed</span></div><div><strong>+0.31R</strong><span>expectancy*</span></div></div>
+            </article>
+            <div class="section-title"><strong>Gate review</strong><span>last 30 days</span></div>
+            <div class="review-list">
+              <article class="review-item"><header><strong>Market structure</strong><span>stable</span></header><p>Trend alignment filtered 7 opposing setups and improved consistency.</p></article>
+              <article class="review-item"><header><strong>Zone quality</strong><span class="block">needs work</span></header><p>Low-confluence zones produced most invalidations. Raise the minimum evidence before watch status.</p></article>
+              <article class="review-item"><header><strong>15m confirmation</strong><span>useful</span></header><p>Confirmed entries avoided 5 premature zone touches in the sample.</p></article>
+              <article class="review-item"><header><strong>Projection accuracy</strong><span class="block">collecting</span></header><p>Only 13 comparable outcomes. Continue shadow tracking before assigning confidence.</p></article>
+            </div>
+            <article class="improve"><span class="eyebrow">Next experiment</span><br><strong>Require confluence ×2 on V25 demand zones</strong><p>Shadow-test for 30 additional setups. Compare confirmation rate, target-before-invalidation, and maximum adverse excursion.</p></article>
+          </div>
+          <nav class="bottom-nav"><span class="nav-item"><b>⌁</b>Markets</span><span class="nav-item"><b>⌗</b>Chart</span><span class="nav-item"><b>◇</b>Outlook</span><span class="nav-item on"><b>↗</b>Strategy</span></nav>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,36 +1,28 @@
 import axios from 'axios'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  closeTrade,
   fetchAiAnalysis,
-  fetchAlerts,
   fetchHealth,
-  fetchMonitor,
   fetchPrice,
-  fetchStatsRange,
+  fetchQuotes,
   fetchVerdict,
-  setMonitor,
-  takeTrade,
   updateSettings,
 } from './api/client'
 import type {
-  AlertRow,
   AiAnalysisResponse,
-  ClosedTradeRow,
   HealthResponse,
   LayerKey,
-  MonitorStatus,
-  Pagination,
+  MarketQuote,
   PairOption,
   PriceTick,
   ScanResult,
-  StatsResponse,
 } from './api/types'
-import { advanceStory, TERMINAL_ALERT } from './lib/story'
+import { advanceStory } from './lib/story'
 import Clippy from './components/Clippy'
 import MacroPulse from './components/MacroPulse'
 import PatternChecklist from './components/PatternChecklist'
-import PositionsPanel from './components/PositionsPanel'
+import QuoteBoard from './components/QuoteBoard'
+import StrategyWorkspace from './components/StrategyWorkspace'
 import StructureBadge from './components/StructureBadge'
 import TgChart from './components/TgChart'
 import VerdictCard from './components/VerdictCard'
@@ -108,53 +100,16 @@ export default function App() {
   const [futureView, setFutureView] = useState<FutureView>('both')
   const [sideTab, setSideTab] = useState<SideTab>('verdict')
   const [srFocus, setSrFocus] = useState(false)
-  const [monitor, setMonitorState] = useState<MonitorStatus | null>(null)
-  const [alerts, setAlerts] = useState<AlertRow[]>([])
-  const [alertsPage, setAlertsPage] = useState<Pagination>({
-    page: 1,
-    per_page: 8,
-    total: 0,
-    total_pages: 1,
-  })
-  const [stats, setStats] = useState<StatsResponse | null>(null)
-  const [ledgerRange, setLedgerRange] = useState<{ from: string; to: string }>({
-    from: '',
-    to: '',
-  })
-  const [watchedPairs, setWatchedPairs] = useState<string[]>([])
+  const [quotes, setQuotes] = useState<MarketQuote[]>([])
+  const [quotesGeneratedAt, setQuotesGeneratedAt] = useState<number | null>(null)
   const [traderMode, setTraderMode] = useState('Swing Trader')
   const [aiProvider, setAiProvider] = useState('builtin')
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [taking, setTaking] = useState(false)
-  const [closingId, setClosingId] = useState<number | null>(null)
-  const [tradeMsg, setTradeMsg] = useState<string | null>(null)
-  const [historyTrade, setHistoryTrade] = useState<ClosedTradeRow | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [aiAnalysis, setAiAnalysis] = useState<AiAnalysisResponse | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
-  const monitorRefreshInFlight = useRef(false)
-  const monitorAbortRef = useRef<AbortController | null>(null)
-  const liveTradesForPair = useMemo(
-    () =>
-      alerts
-        .filter(a => a.pair === pair && a.state === 'FILLED')
-        .sort((a, b) => a.armed_at - b.armed_at),
-    [alerts, pair],
-  )
-  // The alert the storyteller reads its beat progress from: the live one for
-  // this pair on the planned side. `alerts` is already polled every 4s below.
-  const storyAlert = useMemo(
-    () =>
-      alerts.find(
-        a =>
-          a.pair === pair &&
-          !TERMINAL_ALERT.has(a.state) &&
-          (!data?.verdict.plan?.side || a.side === data.verdict.plan.side),
-      ) ?? null,
-    [alerts, pair, data?.verdict.plan?.side],
-  )
   const showExecutionPathHint =
     futureView !== 'projected' &&
-    liveTradesForPair.length === 0 &&
     data?.verdict.plan?.status !== 'ENTER_READY'
 
   useEffect(() => {
@@ -170,7 +125,6 @@ export default function App() {
         setTf(curr => curr || next.default_setup_tf || next.timeframes[0] || '')
         setTraderMode(next.default_trader_mode || 'Swing Trader')
         setAiProvider(next.default_ai_provider || 'builtin')
-        setWatchedPairs(curr => (curr.length ? curr : initialPair ? [initialPair] : []))
       } catch (e) {
         if (!cancelled) setError(apiErrorMessage(e))
       } finally {
@@ -354,142 +308,36 @@ export default function App() {
     })
   }, [chartPatternNames])
 
-  // Poll the always-on monitor + its alerts/account so the alert state machine
-  // and the paper ledger update live, without a re-scan.
-  const refreshMonitor = useCallback(async () => {
-    if (monitorRefreshInFlight.current) return
-    monitorAbortRef.current?.abort()
-    const controller = new AbortController()
-    monitorAbortRef.current = controller
-    monitorRefreshInFlight.current = true
-    try {
-      const m = await fetchMonitor({ signal: controller.signal })
-      setMonitorState(m)
-      if (pair) {
-        const [a, st] = await Promise.all([
-          fetchAlerts(pair, alertsPage.page, alertsPage.per_page, { signal: controller.signal }),
-          fetchStatsRange(pair, ledgerRange.from || undefined, ledgerRange.to || undefined, { signal: controller.signal }),
-        ])
-        setAlerts(a.alerts)
-        setAlertsPage(a.pagination)
-        setStats(st)
-      } else {
-        setAlerts([])
-        setAlertsPage(prev => ({ ...prev, total: 0, total_pages: 1 }))
-        setStats(null)
-      }
-    } catch (e) {
-      if (axios.isCancel(e) || (e instanceof Error && e.name === 'CanceledError')) return
-      /* transient — keep the last snapshot */
-    } finally {
-      if (monitorAbortRef.current === controller) {
-        monitorAbortRef.current = null
-      }
-      monitorRefreshInFlight.current = false
-    }
-  }, [alertsPage.page, alertsPage.per_page, ledgerRange.from, ledgerRange.to, pair])
-
   useEffect(() => {
-    void refreshMonitor()
-    const id = window.setInterval(() => void refreshMonitor(), 6000)
-    return () => {
-      window.clearInterval(id)
-      monitorAbortRef.current?.abort()
-      monitorAbortRef.current = null
-      monitorRefreshInFlight.current = false
-    }
-  }, [refreshMonitor])
-
-  const handleTake = useCallback(async () => {
-    const plan = data?.verdict.plan
-    if (!plan || !plan.side || plan.entry == null || plan.stop == null || plan.target == null || !pair || !tf) return
-    setTaking(true)
-    setTradeMsg(null)
-    try {
-      const res = await takeTrade({
-        pair,
-        tf,
-        side: plan.side as 'long' | 'short',
-        stop: plan.stop,
-        target: plan.target,
-      })
-      setTradeMsg(
-        `Paper ${res.side} opened on ${res.pair} @ ${res.entry} · stop ${res.stop} · target ${res.target} (${res.rr}R).`,
-      )
-      await refreshMonitor()
-    } catch (e) {
-      setTradeMsg(apiErrorMessage(e))
-    } finally {
-      setTaking(false)
-    }
-  }, [data, pair, tf, refreshMonitor])
-
-  const handleClose = useCallback(
-    async (id: number) => {
-      setClosingId(id)
+    let cancelled = false
+    const refreshQuotes = async () => {
       try {
-        await closeTrade(id)
-        await refreshMonitor()
-      } catch (e) {
-        setTradeMsg(apiErrorMessage(e))
-      } finally {
-        setClosingId(null)
+        const snapshot = await fetchQuotes(tf || undefined)
+        if (!cancelled) {
+          setQuotes(snapshot.quotes)
+          setQuotesGeneratedAt(snapshot.generated_at)
+        }
+      } catch {
+        /* Preserve the latest board snapshot through transient feed errors. */
       }
-    },
-    [refreshMonitor],
-  )
-
-  const handleAlertsPage = useCallback((page: number) => {
-    setAlertsPage(prev => ({ ...prev, page }))
-  }, [])
-
-  const handleLedgerRange = useCallback((from: string, to: string) => {
-    setLedgerRange({ from, to })
-  }, [])
-
-  const handleShowHistory = useCallback((row: ClosedTradeRow | null) => {
-    setHistoryTrade(row)
-  }, [])
-
-  const isWatched = useMemo(() => watchedPairs.includes(pair), [watchedPairs, pair])
-
-  const pinCurrentPair = useCallback(() => {
-    if (!pair) return
-    setWatchedPairs(prev => (prev.includes(pair) ? prev : [...prev, pair]))
-  }, [pair])
-
-  const unpinPair = useCallback((pairId: string) => {
-    setWatchedPairs(prev => {
-      const next = prev.filter(p => p !== pairId)
-      return next.length ? next : prev
-    })
-  }, [])
-
-  const activateMonitorPair = useCallback(async (pairId: string) => {
-    const timeframe = tf || health?.default_setup_tf || '4H'
-    try {
-      await setMonitor(pairId, timeframe, traderMode)
-      setTradeMsg(`Live monitor switched to ${pairId.toUpperCase()}.`)
-      await refreshMonitor()
-    } catch (e) {
-      setTradeMsg(apiErrorMessage(e))
     }
-  }, [tf, health?.default_setup_tf, refreshMonitor, traderMode])
+    void refreshQuotes()
+    const id = window.setInterval(() => void refreshQuotes(), 3000)
+    return () => {
+      cancelled = true
+      window.clearInterval(id)
+    }
+  }, [tf, health?.pairs.length])
 
   const handleTraderMode = useCallback(async (nextMode: string) => {
     setTraderMode(nextMode)
     try {
       await updateSettings({ trader_mode: nextMode })
-      if (pair) {
-        const timeframe = tf || health?.default_setup_tf || '4H'
-        await setMonitor(pair, timeframe, nextMode)
-        await refreshMonitor()
-      }
-      setTradeMsg(`Trader mode set to ${nextMode}.`)
+      setNotice(`Trader mode set to ${nextMode}.`)
     } catch (e) {
-      setTradeMsg(apiErrorMessage(e))
+      setNotice(apiErrorMessage(e))
     }
-  }, [pair, tf, health?.default_setup_tf, refreshMonitor])
+  }, [])
 
   const handleAiProvider = useCallback(async (nextProvider: string) => {
     setAiProvider(nextProvider)
@@ -501,16 +349,11 @@ export default function App() {
       } else {
         setAiAnalysis(null)
       }
-      setTradeMsg(`AI explainer set to ${nextProvider}.`)
+      setNotice(`AI explainer set to ${nextProvider}.`)
     } catch (e) {
-      setTradeMsg(apiErrorMessage(e))
+      setNotice(apiErrorMessage(e))
     }
   }, [load, loadAiAnalysis])
-
-  const selectWatchedPair = useCallback((pairId: string) => {
-    setPair(pairId)
-    setWatchedPairs(prev => (prev.includes(pairId) ? prev : [...prev, pairId]))
-  }, [])
 
   const toggle = (k: LayerKey) => setLayers(s => ({ ...s, [k]: !s[k] }))
   const setPriority = (key: 'sr' | 'supply_demand' | 'fvg', value: PriorityFilter) =>
@@ -553,9 +396,9 @@ export default function App() {
     () =>
       advanceStory(data?.verdict.story, {
         price: shownPrice,
-        alertState: storyAlert?.state ?? null,
+        alertState: null,
       }),
-    [data?.verdict.story, shownPrice, storyAlert?.state],
+    [data?.verdict.story, shownPrice],
   )
 
   return (
@@ -701,51 +544,12 @@ export default function App() {
         </div>
       )}
 
-      <div className="tg-watchbar">
-        <div className="tg-watchbar-head">
-          <strong>Watch tabs</strong>
-          <span>
-            One pair is monitored live at a time. The ledger below follows the quote you have selected.
-          </span>
-        </div>
-        <div className="tg-watchbar-actions">
-          <button className="tg-close-btn" onClick={pinCurrentPair} disabled={!pair || isWatched}>
-            {isWatched ? 'Pinned' : 'Pin current pair'}
-          </button>
-          <button
-            className="tg-take-btn"
-            onClick={() => void activateMonitorPair(pair)}
-            disabled={!pair || monitor?.pair === pair}
-          >
-            {monitor?.pair === pair ? 'Live monitor active' : 'Monitor this pair'}
-          </button>
-        </div>
-        <div className="tg-watch-tabs">
-          {watchedPairs.map(pairId => {
-            const market = health?.pairs.find(p => p.id === pairId)
-            const monitored = monitor?.pair === pairId
-            const selected = pair === pairId
-            return (
-              <div
-                key={pairId}
-                className={`tg-watch-tab ${selected ? 'tg-watch-tab--on' : ''} ${monitored ? 'tg-watch-tab--live' : ''}`}
-              >
-                <button className="tg-watch-tab-main" onClick={() => selectWatchedPair(pairId)}>
-                  <span>{market?.display ?? pairId.toUpperCase()}</span>
-                  <span className="tg-watch-tab-meta">
-                    {monitored ? 'monitoring live' : 'ledger only'}
-                  </span>
-                </button>
-                {watchedPairs.length > 1 && (
-                  <button className="tg-watch-tab-x" onClick={() => unpinPair(pairId)} aria-label={`Remove ${pairId}`}>
-                    ×
-                  </button>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </div>
+      <QuoteBoard
+        quotes={quotes}
+        selected={pair}
+        generatedAt={quotesGeneratedAt}
+        onSelect={setPair}
+      />
 
       <nav className="tg-layers">
         {LAYERS.map(l => (
@@ -796,7 +600,7 @@ export default function App() {
           </select>
         </label>
         {showExecutionPathHint && (
-          <span className="tg-bias-meta">Execution path appears only for ENTER-ready or live positions</span>
+          <span className="tg-bias-meta">Confirmed path appears only after every entry gate passes</span>
         )}
       </nav>
 
@@ -810,8 +614,8 @@ export default function App() {
                 data={data}
                 futureView={futureView}
                 srFocus={srFocus}
-                historyTrade={historyTrade && historyTrade.pair === data.pair ? historyTrade : null}
-                liveTrades={liveTradesForPair}
+                historyTrade={null}
+                liveTrades={[]}
                 layers={layers}
                 priorityFilters={priorityFilters}
                 checkedPatterns={checkedPatterns}
@@ -847,11 +651,9 @@ export default function App() {
                     verdict={data.verdict}
                     generatedAt={data.generated_at}
                     rescan={data.rescan}
-                    onTake={handleTake}
-                    taking={taking}
                     compact
                     livePrice={shownPrice}
-                    alertState={storyAlert?.state ?? null}
+                    alertState={null}
                   />
                 </div>
               ) : sideTab === 'patterns' ? (
@@ -882,34 +684,22 @@ export default function App() {
               )}
             </div>
           </div>
+          <StrategyWorkspace
+            data={data}
+            analysis={aiAnalysis}
+            loading={aiLoading}
+            onRefresh={() => void loadAiAnalysis(true)}
+          />
         </>
       ) : (
         !error && <div className="tg-loading">{booting ? 'Loading market config…' : 'Loading scan…'}</div>
       )}
 
-      {tradeMsg && <div className="tg-trade-msg">{tradeMsg}</div>}
-
-        <PositionsPanel
-          monitor={monitor}
-        alerts={alerts}
-        pagination={alertsPage}
-          stats={stats}
-          currentPlan={data?.verdict.plan ? { ...data.verdict.plan, generated_at: data.generated_at, rescan: data.rescan } : null}
-        aiAnalysis={aiAnalysis}
-        aiLoading={aiLoading}
-        onRunAiAnalysis={() => void loadAiAnalysis(true)}
-        selectedHistoryAlertId={historyTrade?.alert_id ?? null}
-        onClose={handleClose}
-        onShowHistory={handleShowHistory}
-        onPage={handleAlertsPage}
-        range={ledgerRange}
-        onRange={handleLedgerRange}
-        closingId={closingId}
-        />
+      {notice && <div className="tg-trade-msg">{notice}</div>}
 
       <footer className="tg-foot">
-        Analysis and education only — not financial advice. TradeGuard never holds funds or
-        trades on your behalf.
+        Analysis and education only — not financial advice. TradeGuard guides strategy review
+        and does not place or manage trades.
       </footer>
 
       <Clippy story={liveStory} />

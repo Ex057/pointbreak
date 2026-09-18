@@ -22,8 +22,6 @@ export default function VerdictCard({
   verdict,
   generatedAt,
   rescan,
-  onTake,
-  taking,
   compact,
   livePrice,
   alertState,
@@ -31,8 +29,6 @@ export default function VerdictCard({
   verdict: Verdict
   generatedAt?: number
   rescan?: RescanMeta
-  onTake?: () => void
-  taking?: boolean
   compact?: boolean
   /** live tick (or last candle close) used to advance story beats between scans */
   livePrice?: number | null
@@ -193,16 +189,6 @@ export default function VerdictCard({
               {verdict.ai_analysis.error && (
                 <p className="tg-plan-meta tg-red">Fallback used: {verdict.ai_analysis.error}</p>
               )}
-            </div>
-          )}
-          {onTake && verdict.state === 'ENTER' && verdict.plan.entry != null && verdict.plan.stop != null && verdict.plan.target != null && (
-            <div className="tg-take">
-              <button className="tg-take-btn" onClick={onTake} disabled={taking}>
-                {taking ? 'Entering…' : 'Paper-trade this plan'}
-              </button>
-              <span className="tg-take-note">
-                Enters at market on the demo ledger — no real order. Tracked to target/stop.
-              </span>
             </div>
           )}
         </div>

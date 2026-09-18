@@ -11,6 +11,7 @@ import type {
   MonitorStatus,
   Pagination,
   PriceTick,
+  QuotesResponse,
   Recommendation,
   ScanResult,
   SettingsResponse,
@@ -46,6 +47,11 @@ export async function fetchHealth() {
 
 export async function fetchPrice(pair: string, tf?: string) {
   const { data } = await api.get<PriceTick>('/price', { params: { pair, tf } })
+  return data
+}
+
+export async function fetchQuotes(tf?: string) {
+  const { data } = await api.get<QuotesResponse>('/quotes', { params: { tf } })
   return data
 }
 

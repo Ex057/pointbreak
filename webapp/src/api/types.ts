@@ -224,6 +224,24 @@ export interface PriceTick {
   } | null
 }
 
+export interface MarketQuote {
+  pair: string
+  display: string
+  category: string
+  available: boolean
+  price: number | null
+  source: 'deriv' | 'yahoo' | 'candle' | 'none'
+  epoch?: number | null
+  stale: boolean
+  realtime: boolean
+  ohlc?: PriceTick['ohlc']
+}
+
+export interface QuotesResponse {
+  generated_at: number
+  quotes: MarketQuote[]
+}
+
 export type StoryBeatStatus = 'done' | 'active' | 'pending' | 'failed'
 export type StoryBeatKind =
   | 'reach_zone'
