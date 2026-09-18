@@ -10,5 +10,25 @@ dist/
 *.sqlite
 *.sqlite3
 *.db
+*.sqlite-*
 .pytest_cache/
 .qodo/
+
+# runtime state written by start.sh
+.run/
+
+# vite/tsc build artifacts (compiled from *.ts sources)
+webapp/vite.config.js
+webapp/vite.config.d.ts
+*.tsbuildinfo
+build/
+
+# local archives, exports, and IDE state
+*.zip
+*.apk
+*.aab
+.idea/
+.gradle/
+mobile_app/local.properties
+mobile_app/app/build/
+backend/db_backups/

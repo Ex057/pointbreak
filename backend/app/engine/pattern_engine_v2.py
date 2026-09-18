@@ -19,7 +19,7 @@ New in v2 (on top of v1):
 
 2. LAYER TOGGLES  -> engine.plot(layers={...})
    Available layers (pass any subset - this is your UI toggle):
-     "trendlines"      1. trendlines (+ future extension)
+     "moving_averages" 1. EMA 9/21/50 + SMA 200 overlay lines
      "sr"              2. support & resistance zones
      "supply_demand"   3. demand & supply zones (base -> impulse logic)
      "fvg"             4. fair value gaps (fresh ones projected forward)
@@ -45,14 +45,63 @@ import numpy as np
 import pandas as pd
 from scipy.signal import find_peaks
 
+from . import pattern_meta
+from . import chart_patterns as _chart_patterns
+
 BULL = "bullish"
 BEAR = "bearish"
 NEUTRAL = "neutral"
 
 ALL_LAYERS = {
-    "trendlines", "sr", "supply_demand", "fvg",
+    "moving_averages", "sr", "supply_demand", "fvg",
     "patterns_high", "patterns_all", "future_entries",
 }
+
+# Moving averages that replace the old trendline layer. Order matters for the
+# frontend legend/colour assignment. Each is (name, period, kind).
+MA_CONFIG = [
+    ("EMA 9", 9, "ema"),
+    ("EMA 21", 21, "ema"),
+    ("EMA 50", 50, "ema"),
+    ("SMA 200", 200, "sma"),
+]
+
+# -----------------------------------------------------------------------------
+# Pair-specific pattern availability. Synthetic momentum indices (Volatility,
+# Crash) behave in strong impulsive moves, so we surface momentum / strong-body
+# reversals. Forex, metals and the stock index get the classic reversal +
+# continuation set. A pattern absent from the relevant set is still DETECTED,
+# just marked `available: False` so the frontend checklist hides it for that
+# instrument. Pure-indecision candles (plain Doji, Spinning Top, High Wave) are
+# in neither set — informational only, never on the checklist.
+# -----------------------------------------------------------------------------
+_MOMENTUM_PATTERNS = frozenset({
+    "White Marubozu", "Black Marubozu",
+    "Bullish Engulfing", "Bearish Engulfing",
+    "Bullish Kicker", "Bearish Kicker",
+    "Hammer", "Hanging Man", "Inverted Hammer", "Shooting Star",
+    "Morning Star", "Evening Star",
+    "Three White Soldiers", "Three Black Crows",
+})
+_CLASSIC_PATTERNS = frozenset({
+    "Bullish Engulfing", "Bearish Engulfing",
+    "Bullish Harami", "Bearish Harami",
+    "Piercing Line", "Dark Cloud Cover",
+    "Tweezers Top", "Tweezers Bottom",
+    "Morning Star", "Evening Star",
+    "Three White Soldiers", "Three Black Crows",
+    "Hammer", "Hanging Man", "Inverted Hammer", "Shooting Star",
+    "Dragonfly Doji", "Gravestone Doji",
+    "Bullish Kicker", "Bearish Kicker",
+    "White Marubozu", "Black Marubozu",
+})
+
+
+def available_patterns(category: str) -> list[str]:
+    """The pattern names that make sense to offer for an instrument category.
+    Synthetic -> momentum set; everything else (forex/metals/index) -> classic."""
+    names = _MOMENTUM_PATTERNS if (category or "").lower() == "synthetic" else _CLASSIC_PATTERNS
+    return sorted(names)
 
 
 def _pattern(i, name, direction, price, strength=1.0, span=1):
@@ -67,6 +116,7 @@ class PatternEngine:
         self,
         df: pd.DataFrame,
         timeframe: str = "",
+        pair_category: str = "",
         swing_distance: int = 5,
         swing_prominence_mult: float = 0.8,
         trend_lookback: int = 7,
@@ -81,6 +131,7 @@ class PatternEngine:
             raise ValueError("df must contain open, high, low, close")
         self.df = df.reset_index(drop=False)
         self.timeframe = timeframe
+        self.pair_category = pair_category
         self.o = df["open"].to_numpy(float)
         self.h = df["high"].to_numpy(float)
         self.l = df["low"].to_numpy(float)
@@ -102,6 +153,17 @@ class PatternEngine:
         self.black = self.c < self.o
         self.atr = self._atr(atr_period)
         self.avg_body = pd.Series(self.body).rolling(atr_period, min_periods=1).mean().to_numpy()
+
+        # Moving averages (replace trendlines): fast EMAs for momentum, EMA 50
+        # for mid-trend, SMA 200 for the major trend. min_periods=1 keeps the
+        # series defined early; short series simply yield near-price values.
+        close_s = pd.Series(self.c)
+        self._ma = {}
+        for name, period, kind in MA_CONFIG:
+            if kind == "ema":
+                self._ma[name] = close_s.ewm(span=period, min_periods=1, adjust=False).mean().to_numpy()
+            else:
+                self._ma[name] = close_s.rolling(period, min_periods=1).mean().to_numpy()
 
         self._swings = None
         self._results = None
@@ -213,33 +275,39 @@ class PatternEngine:
         return [z for z in zones if not z["broken"]]
 
     # =========================================================================
-    #  TRENDLINES (fit + future extension handled in project_future)
+    #  MOVING AVERAGES  (replace the old trendlines layer)
     # =========================================================================
-    def detect_trendlines(self, max_points=4, min_touch=2):
-        swings = self.detect_swings()
-        atr = np.nanmean(self.atr)
-        lines = []
+    def moving_averages(self):
+        """One series per configured MA. Each point is {index, value}; NaNs are
+        dropped so the frontend line series starts where the MA is defined."""
+        out = []
+        for name, period, kind in MA_CONFIG:
+            vals = self._ma[name]
+            points = [{"index": int(i), "value": float(v)}
+                      for i, v in enumerate(vals) if not np.isnan(v)]
+            out.append({"layer": "moving_averages", "name": name,
+                        "period": int(period), "kind": kind, "points": points})
+        return out
 
-        def fit(points, kind):
-            if len(points) < min_touch:
-                return
-            pts = points[-max_points:]
-            xs = np.array([p["index"] for p in pts], float)
-            ys = np.array([p["price"] for p in pts], float)
-            slope, b = np.polyfit(xs, ys, 1)
-            touches = int(np.sum(np.abs(ys - (slope * xs + b)) < 0.5 * atr))
-            if touches < min_touch:
-                return
-            x0 = int(xs[0]); x1 = self.n - 1
-            lines.append({"layer": "trendlines", "kind": kind,
-                          "x0": x0, "y0": float(slope * x0 + b),
-                          "x1": x1, "y1": float(slope * x1 + b),
-                          "slope": float(slope), "intercept": float(b),
-                          "touches": touches})
-
-        fit(swings["lows"], "up")
-        fit(swings["highs"], "down")
-        return lines
+    def _ma_bias(self):
+        """Trend bias sourced from the moving averages (replaces trendline slope).
+        +1 bullish / -1 bearish / 0 neutral, from price vs EMA50/SMA200 and the
+        EMA 9/21 cross."""
+        if self.n == 0:
+            return 0
+        px = self.c[-1]
+        ema9 = self._ma["EMA 9"][-1]
+        ema21 = self._ma["EMA 21"][-1]
+        ema50 = self._ma["EMA 50"][-1]
+        sma200 = self._ma["SMA 200"][-1]
+        score = 0.0
+        if not np.isnan(ema50):
+            score += 1.0 if px > ema50 else -1.0
+        if not (np.isnan(ema9) or np.isnan(ema21)):
+            score += 1.0 if ema9 > ema21 else -1.0
+        if not np.isnan(sma200):
+            score += 0.5 if px > sma200 else -0.5
+        return 1 if score > 0 else -1 if score < 0 else 0
 
     # =========================================================================
     #  FAIR VALUE GAPS
@@ -250,16 +318,23 @@ class PatternEngine:
             g = min_gap_atr * self.atr[i]
             if self.l[i] - self.h[i - 2] > g:                    # bullish FVG
                 top, bot = float(self.l[i]), float(self.h[i - 2])
-                filled = bool(np.any(self.l[i + 1:] <= bot)) if i + 1 < self.n else False
-                out.append({"layer": "fvg", "index": int(i - 1), "kind": BULL,
+                # fill = the first later bar that trades back down into the gap
+                hits = np.where(self.l[i + 1:] <= bot)[0] if i + 1 < self.n else np.array([], int)
+                fill_index = int(i + 1 + hits[0]) if hits.size else None
+                out.append({"layer": "fvg", "index": int(i - 1),
+                            "start_index": int(i - 2), "end_index": int(i),
+                            "fill_index": fill_index, "kind": BULL,
                             "top": top, "bottom": bot,
-                            "level_mid": (top + bot) / 2, "filled": filled})
+                            "level_mid": (top + bot) / 2, "filled": fill_index is not None})
             elif self.l[i - 2] - self.h[i] > g:                  # bearish FVG
                 top, bot = float(self.l[i - 2]), float(self.h[i])
-                filled = bool(np.any(self.h[i + 1:] >= top)) if i + 1 < self.n else False
-                out.append({"layer": "fvg", "index": int(i - 1), "kind": BEAR,
+                hits = np.where(self.h[i + 1:] >= top)[0] if i + 1 < self.n else np.array([], int)
+                fill_index = int(i + 1 + hits[0]) if hits.size else None
+                out.append({"layer": "fvg", "index": int(i - 1),
+                            "start_index": int(i - 2), "end_index": int(i),
+                            "fill_index": fill_index, "kind": BEAR,
                             "top": top, "bottom": bot,
-                            "level_mid": (top + bot) / 2, "filled": filled})
+                            "level_mid": (top + bot) / 2, "filled": fill_index is not None})
         return out
 
     # =========================================================================
@@ -375,6 +450,41 @@ class PatternEngine:
                     break
         return patterns
 
+    # -------------------------------------------------------------------------
+    #  Confirmation + pair availability
+    #  A pattern is CONFIRMED only after its full candle group has closed AND the
+    #  next candle closes in the pattern's direction (follow-through). The last
+    #  bar (index n-1) is treated as the still-forming bar, so its own patterns —
+    #  and any whose confirmation candle would be that forming bar — stay pending.
+    # -------------------------------------------------------------------------
+    def _finalize_patterns(self, patterns):
+        last_closed = self.n - 2      # n-1 is the live/forming bar
+        avail = set(available_patterns(self.pair_category))
+        for pat in patterns:
+            i = pat["index"]
+            span = pat.get("span", 1)
+            pat["start_index"] = int(i - span + 1)
+            pat["end_index"] = int(i)
+            pat["available"] = pat["name"] in avail
+            pattern_meta.stamp(pat)
+
+            ci = i + 1                # follow-through / confirmation candle
+            if i > last_closed or ci > last_closed:
+                # pattern completes on (or is confirmed by) the forming bar
+                pat["confirmed"] = False
+                pat["status"] = "pending"
+                continue
+            d = pat["direction"]
+            if d == BULL:
+                ok = self.c[ci] > self.c[i]
+            elif d == BEAR:
+                ok = self.c[ci] < self.c[i]
+            else:  # neutral/doji: confirmation = a decisive break of its range
+                ok = self.c[ci] > self.h[i] or self.c[ci] < self.l[i]
+            pat["confirmed"] = bool(ok)
+            pat["status"] = "confirmed" if ok else "pending"
+        return patterns
+
     # =========================================================================
     #  FUTURE PROJECTION  ->  imaginary entry points in the future region
     # =========================================================================
@@ -384,12 +494,11 @@ class PatternEngine:
         -------
         {
           "bars_ahead": int,
-          "bias": "bullish"/"bearish"/"neutral",   (from trendlines + trend)
-          "trendline_extensions": [{kind, x1, y1, x_future, y_future}],
+          "bias": "bullish"/"bearish"/"neutral",   (from moving averages + trend)
           "entries": [
              {
                "side": "long"/"short",
-               "source": "sr"/"supply_demand"/"fvg"/"trendline",
+               "source": "sr"/"supply_demand"/"fvg",
                "zone_min", "zone_max", "entry_price",
                "eta_bars",        # rough bars until price could reach zone
                "x_future",        # plotting x  (last_index + eta_bars)
@@ -408,7 +517,6 @@ class PatternEngine:
         sr = self.detect_sr_zones()
         sd = self.detect_supply_demand()
         fvgs = [g for g in self.detect_fvgs() if not g["filled"]]
-        tls = self.detect_trendlines()
 
         last_i = self.n - 1
         px = self.c[-1]
@@ -416,23 +524,11 @@ class PatternEngine:
         # average bar travel -> ETA estimator
         travel = float(np.nanmean(np.abs(np.diff(self.c[-30:])))) or atr
 
-        # ---- overall bias ----------------------------------------------------
+        # ---- overall bias (now sourced from moving averages) -----------------
         t = self._trend(self.n)
-        slope_bias = 0.0
-        for tl in tls:
-            slope_bias += np.sign(tl["slope"])
-        bias_score = t + np.sign(slope_bias)
+        ma_bias = self._ma_bias()
+        bias_score = t + ma_bias
         bias = BULL if bias_score > 0 else BEAR if bias_score < 0 else NEUTRAL
-
-        # ---- trendline future extension --------------------------------------
-        extensions = []
-        for tl in tls:
-            xf = last_i + bars_ahead
-            yf = tl["slope"] * xf + tl["intercept"]
-            extensions.append({"kind": tl["kind"], "x1": tl["x1"], "y1": tl["y1"],
-                               "x_future": int(xf), "y_future": float(yf),
-                               "slope": tl["slope"], "intercept": tl["intercept"],
-                               "touches": tl["touches"]})
 
         # ---- collect candidate zones -----------------------------------------
         candidates = []
@@ -454,18 +550,19 @@ class PatternEngine:
         def overlaps(a, b, pad=0.25 * atr):
             return a["zmin"] <= b["zmax"] + pad and b["zmin"] <= a["zmax"] + pad
 
+        # a moving average sitting inside a zone is a confluence factor (a level
+        # defended by a dynamic MA), replacing the old trendline-through-zone test
+        ma_levels = [self._ma[name][-1] for name, _, _ in MA_CONFIG
+                     if not np.isnan(self._ma[name][-1])]
         for cnd in candidates:
             cnd["confluence"] = 1
             for other in candidates:
                 if other is not cnd and overlaps(cnd, other):
                     cnd["confluence"] += 1
-            # trendline passing through the zone within the horizon adds confluence
-            for tl in extensions:
-                for db in range(0, bars_ahead + 1, max(1, bars_ahead // 10)):
-                    y = tl["slope"] * (last_i + db) + tl["intercept"]
-                    if cnd["zmin"] - 0.25 * atr <= y <= cnd["zmax"] + 0.25 * atr:
-                        cnd["confluence"] += 1
-                        break
+            for y in ma_levels:
+                if cnd["zmin"] - 0.25 * atr <= y <= cnd["zmax"] + 0.25 * atr:
+                    cnd["confluence"] += 1
+                    break
 
         # ---- turn zones into future entries -----------------------------------
         entries = []
@@ -520,8 +617,7 @@ class PatternEngine:
                    for q in pruned):
                 pruned.append(e)
         return {"timeframe": self.timeframe, "bars_ahead": bars_ahead,
-                "bias": bias, "trendline_extensions": extensions,
-                "entries": pruned[:max_entries]}
+                "bias": bias, "entries": pruned[:max_entries]}
 
     # =========================================================================
     #  MASTER ANALYZE
@@ -530,7 +626,8 @@ class PatternEngine:
         sr = self.detect_sr_zones()
         sd = self.detect_supply_demand()
         fvgs = self.detect_fvgs()
-        patterns = self._tag_patterns_at_zones(self.detect_patterns(), sr, sd, fvgs)
+        patterns = self._finalize_patterns(
+            self._tag_patterns_at_zones(self.detect_patterns(), sr, sd, fvgs))
         hp = [p for p in patterns
               if p["strength"] >= self.high_prob_threshold or p["at_zone"]]
         self._results = {
@@ -539,9 +636,10 @@ class PatternEngine:
             "sr_zones": sr,
             "supply_demand": sd,
             "fvgs": fvgs,
-            "trendlines": self.detect_trendlines(),
+            "moving_averages": self.moving_averages(),
             "patterns_all": patterns,
             "patterns_high": hp,
+            "chart_patterns": _chart_patterns.detect_chart_patterns(self),
             "future": self.project_future(bars_ahead),
         }
         return self._results
@@ -624,17 +722,15 @@ class PatternEngine:
                 ax.text(g["index"], (g["top"] + g["bottom"]) / 2, "FVG",
                         fontsize=7, color=col, va="center")
 
-        # ---- trendlines + dashed future extension -----------------------------
-        if "trendlines" in layers:
-            for tl in res["trendlines"]:
-                col = "#00c853" if tl["kind"] == "up" else "#d50000"
-                ax.plot([tl["x0"], tl["x1"]], [tl["y0"], tl["y1"]],
-                        color=col, lw=1.6, zorder=4,
-                        label=f'{tl["kind"]} trendline ({tl["touches"]}T)')
-            for ext in fut["trendline_extensions"]:
-                col = "#00c853" if ext["kind"] == "up" else "#d50000"
-                ax.plot([ext["x1"], ext["x_future"]], [ext["y1"], ext["y_future"]],
-                        color=col, lw=1.4, ls="--", alpha=0.8, zorder=4)
+        # ---- moving averages --------------------------------------------------
+        if "moving_averages" in layers:
+            ma_colors = {"EMA 9": "#42a5f5", "EMA 21": "#ab47bc",
+                         "EMA 50": "#ffa726", "SMA 200": "#26a69a"}
+            for ser in res["moving_averages"]:
+                xs = [p["index"] for p in ser["points"]]
+                ys = [p["value"] for p in ser["points"]]
+                ax.plot(xs, ys, color=ma_colors.get(ser["name"], "#888"),
+                        lw=1.2, zorder=4, label=ser["name"])
 
         # ---- pattern markers ---------------------------------------------------
         pat_layer = ("patterns_all" if "patterns_all" in layers
@@ -689,7 +785,7 @@ class PatternEngine:
         on = ", ".join(sorted(layers))
         ax.set_title(f"PatternEngine v2{tf} - bias: {fut['bias']} | layers: {on}", fontsize=10)
         ax.grid(alpha=0.2)
-        if "trendlines" in layers and res["trendlines"]:
+        if "moving_averages" in layers and res["moving_averages"]:
             ax.legend(loc="upper left", fontsize=8)
         fig.tight_layout()
         if path:

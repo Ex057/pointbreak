@@ -1,0 +1,1334 @@
+:root {
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --amber-bg: #fef3c7;
+  --amber-ink: #92400e;
+  --amber-line: #fcd34d;
+  --green-bg: #dcfce7;
+  --green-ink: #14532d;
+  --green-line: #86efac;
+  /* height of the chart pane — the right rail matches it so the rail scrolls
+     its own content instead of stretching the page. */
+  --chart-h: max(500px, min(68vh, 640px));
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+}
+
+.tg-app {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 18px clamp(16px, 2.8vw, 34px) 28px;
+}
+
+/* ---------- top bar ---------- */
+.tg-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px 12px 0 0;
+  padding: 16px 20px;
+}
+.tg-brand { font-size: 19px; font-weight: 700; color: #4f46e5; letter-spacing: -0.02em; }
+.tg-select {
+  padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px;
+  background: #fff; font-size: 14px; color: var(--ink); min-width: 190px;
+}
+.tg-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.tg-pill {
+  padding: 7px 15px; border: 1px solid var(--line); border-radius: 8px;
+  background: #fff; cursor: pointer; font-size: 13px; color: var(--muted);
+}
+.tg-pill--on { background: #0f172a; color: #fff; border-color: #0f172a; font-weight: 600; }
+.tg-price { margin-left: auto; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.tg-price strong { font-size: 22px; font-variant-numeric: tabular-nums; }
+.tg-price-src { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.tg-ohlc {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: #475569;
+  font-variant-numeric: tabular-nums;
+  padding-left: 4px;
+}
+.tg-live-dot {
+  align-self: center; width: 8px; height: 8px; border-radius: 50%;
+  background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.2);
+  animation: tg-pulse 1.5s ease-in-out infinite;
+}
+@keyframes tg-pulse { 0%,100% { opacity: 1 } 50% { opacity: .4 } }
+.tg-rescan {
+  padding: 8px 14px; border: 1px solid var(--line); border-radius: 8px;
+  background: #fff; cursor: pointer; font-size: 13px;
+}
+.tg-rescan:disabled { opacity: .5; cursor: default; }
+.tg-settings-btn {
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+.tg-settings-btn--on {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+  color: #3730a3;
+}
+.tg-settings-pop {
+  position: relative;
+  z-index: 12;
+}
+.tg-settings-card {
+  position: absolute;
+  right: 0;
+  top: 8px;
+  width: min(360px, calc(100vw - 32px));
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, .12);
+  padding: 14px;
+}
+.tg-settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.tg-settings-field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.tg-settings-field select {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+}
+.tg-settings-notes {
+  display: grid;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.tg-settings-notes p {
+  margin: 0;
+  padding: 8px 9px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.tg-meta {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  background: #eef2ff; color: #3730a3;
+  border: 1px solid #c7d2fe; border-top: none;
+  padding: 10px 18px; font-size: 12.5px;
+}
+
+.tg-watchbar {
+  display: grid;
+  gap: 10px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-top: none;
+  padding: 14px 18px;
+}
+.tg-watchbar-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.tg-watchbar-head strong {
+  font-size: 13px;
+}
+.tg-watchbar-head span {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.tg-watchbar-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tg-watch-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.tg-watch-tab {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  min-width: 180px;
+}
+.tg-watch-tab--on {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+}
+.tg-watch-tab--live {
+  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.28);
+}
+.tg-watch-tab-main {
+  border: none;
+  background: transparent;
+  padding: 10px 12px;
+  display: grid;
+  gap: 3px;
+  text-align: left;
+  cursor: pointer;
+  flex: 1 1 auto;
+}
+.tg-watch-tab-main span:first-child {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.tg-watch-tab-meta {
+  font-size: 11px;
+  color: var(--muted);
+}
+.tg-watch-tab-x {
+  border: none;
+  border-left: 1px solid var(--line);
+  background: transparent;
+  width: 34px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 16px;
+}
+.tg-watch-tab-x:hover {
+  color: var(--ink);
+}
+
+/* ---------- news banner ---------- */
+/* ---------- layer toggles ---------- */
+.tg-layers {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  background: var(--card); border: 1px solid var(--line); border-top: none;
+  padding: 14px 20px;
+}
+.tg-layers--exclusive {
+  justify-content: space-between;
+}
+.tg-toggle {
+  padding: 8px 16px; border: 1px solid var(--line); border-radius: 20px;
+  background: #fff; cursor: pointer; font-size: 13px; color: var(--muted);
+}
+.tg-toggle--on { background: #eff6ff; border-color: #93c5fd; color: #1d4ed8; font-weight: 600; }
+.tg-filter {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px; border: 1px solid var(--line); border-radius: 18px;
+  background: #fff; font-size: 12px; color: var(--muted);
+}
+.tg-filter select {
+  border: none; background: transparent; color: var(--ink); font-size: 12px;
+}
+.tg-bias { margin-left: auto; font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tg-bias-meta { color: var(--muted); }
+
+/* market-structure badge */
+.tg-struct {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 11px; border-radius: 20px; font-size: 12.5px; font-weight: 600;
+  border: 1px solid transparent; cursor: help;
+}
+.tg-struct-glyph { font-size: 11px; }
+.tg-struct-conf { opacity: .7; font-weight: 500; font-size: 11px; }
+.tg-struct--up     { background: #dcfce7; color: #15803d; border-color: #86efac; }
+.tg-struct--down   { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
+.tg-struct--range  { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
+.tg-struct--consol { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+.tg-struct--undet  { background: #f8fafc; color: #94a3b8; border-color: #e2e8f0; }
+
+/* ---------- chart + right-side pattern checklist ---------- */
+.tg-chart-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(300px, 360px);
+  align-items: stretch;
+  background: var(--card); border: 1px solid var(--line); border-top: none;
+}
+.tg-chart-col { flex: 1 1 auto; min-width: 0; position: relative; }
+.tg-chart-col--full { grid-column: 1 / -1; }
+.tg-chart-wrap {
+  position: relative; height: var(--chart-h); background: var(--card);
+}
+.tg-chart { position: absolute; inset: 0; }
+.tg-overlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.tg-band { position: absolute; }
+.tg-band-label {
+  position: absolute; left: 6px; top: 1px;
+  font-size: 10.5px; font-weight: 600; white-space: nowrap;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.9);
+  box-shadow: 0 1px 2px rgba(15,23,42,.08);
+}
+.tg-history-svg { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: visible; }
+.tg-future { position: absolute; top: 0; bottom: 0; background: rgba(100, 116, 139, .07); }
+
+/* crosshair readout */
+.tg-tooltip {
+  position: absolute; top: 8px; left: 8px; z-index: 4;
+  display: flex; gap: 10px; align-items: center;
+  padding: 5px 10px; border-radius: 8px;
+  background: rgba(255,255,255,.92); border: 1px solid var(--line);
+  font-size: 11.5px; font-variant-numeric: tabular-nums; color: var(--muted);
+  pointer-events: none; box-shadow: 0 1px 4px rgba(15,23,42,.08);
+}
+.tg-tooltip b { color: var(--ink); font-weight: 600; }
+.tg-tt-time { color: var(--ink); font-weight: 600; }
+
+.tg-checklist {
+  flex: 0 0 208px; border-left: 1px solid var(--line);
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;
+  max-height: min(68vh, 640px); overflow-y: auto;
+}
+/* The rail is height-locked to the chart so its pane scrolls internally: the
+   tab strip stays put and the page doesn't grow with the pattern list. */
+.tg-rail {
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--line);
+  height: var(--chart-h);
+  min-height: 0;
+  overflow: hidden;
+  background: linear-gradient(180deg, #fbfdff 0%, #ffffff 100%);
+}
+.tg-rail-tabs {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 10px 12px 6px;
+  border-bottom: 1px solid var(--line);
+  background: #f8fafc;
+}
+.tg-rail-tab {
+  flex: 1 1 0;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.tg-rail-tab--on {
+  background: #eef2ff;
+  color: #3730a3;
+  border-color: #c7d2fe;
+  font-weight: 600;
+}
+.tg-rail .tg-checklist {
+  flex: 1 1 auto;
+  border-left: none;
+  min-height: 0;
+  max-height: none;
+  overscroll-behavior: contain;
+}
+.tg-rail-pane {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px;
+}
+/* stack the chart-pattern + candlestick checklists in the Patterns tab */
+.tg-pattern-panes {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* stacked panes keep their natural height — the parent does the scrolling, so
+   they must not flex-shrink (visible overflow would overlap the pane below). */
+.tg-pattern-panes .tg-checklist {
+  flex: 0 0 auto;
+  max-height: none;
+  overflow: visible;
+}
+.tg-checklist-head { display: flex; align-items: center; justify-content: space-between; }
+.tg-checklist-head strong { font-size: 13px; }
+.tg-checklist-actions { display: flex; gap: 6px; }
+.tg-checklist-actions button {
+  border: 1px solid var(--line); background: #fff; border-radius: 6px;
+  font-size: 11px; padding: 2px 8px; cursor: pointer; color: var(--muted);
+}
+.tg-checklist-actions button:hover { border-color: #94a3b8; color: var(--ink); }
+.tg-checklist-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.tg-checklist-list label {
+  display: flex; align-items: center; gap: 7px; font-size: 12px;
+  padding: 3px 2px; cursor: pointer; color: var(--ink);
+}
+.tg-checklist-groups { display: flex; flex-direction: column; gap: 10px; }
+.tg-checklist-group {
+  border: 1px solid rgba(226, 232, 240, .9);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, .86);
+}
+.tg-checklist-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.tg-checklist-group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 12px;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+.tg-checklist-group-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+.tg-checklist-group-badge {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+.tg-checklist-hint {
+  margin: 0 0 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #475569;
+}
+.tg-checklist-pattern {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+}
+.tg-checklist-pattern-name {
+  flex: 1 1 auto;
+}
+.tg-checklist-pattern-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(37, 99, 235, .25);
+  background: rgba(37, 99, 235, .08);
+  color: #2563eb;
+  font-size: 10px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+.tg-checklist-pattern-count {
+  font-size: 11px;
+  color: var(--muted);
+  min-width: 18px;
+  text-align: right;
+}
+.tg-pattern-hover-card {
+  position: fixed;
+  width: 300px;
+  z-index: 20;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, .28);
+  border-left: 4px solid #94a3b8;
+  background: rgba(255, 255, 255, .98);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, .18);
+}
+.tg-pattern-hover-card strong {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+}
+.tg-pattern-hover-card p {
+  margin: 8px 0 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #334155;
+}
+.tg-pattern-hover-chip {
+  display: inline-flex;
+  margin-bottom: 10px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f8fafc;
+  border: 1px solid rgba(148, 163, 184, .3);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: #475569;
+}
+.tg-pattern-hover-row {
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  gap: 10px;
+  align-items: start;
+  margin-top: 8px;
+  font-size: 11.5px;
+}
+.tg-pattern-hover-row span {
+  color: var(--muted);
+  font-weight: 600;
+}
+.tg-pattern-hover-row b {
+  color: var(--ink);
+  font-weight: 600;
+  line-height: 1.4;
+}
+.tg-checklist-list input, .tg-checklist-pending input { accent-color: #4f46e5; }
+.tg-checklist-empty, .tg-checklist-note { font-size: 11px; color: var(--muted); margin: 4px 0 0; }
+.tg-checklist-pending {
+  display: flex; align-items: center; gap: 7px; font-size: 12px;
+  border-top: 1px solid var(--line); padding-top: 8px; margin-top: 4px; cursor: pointer;
+}
+.tg-macro-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.tg-macro-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.tg-macro-label,
+.tg-macro-detail {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.tg-macro-card strong {
+  font-size: 13px;
+  color: var(--ink);
+}
+.tg-macro-block {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.tg-macro-block strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 12.5px;
+}
+.tg-macro-block p {
+  margin: 4px 0;
+  font-size: 12px;
+  color: var(--ink);
+}
+.tg-macro-block p span {
+  color: var(--muted);
+}
+.tg-macro-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tg-macro-list li {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 12px;
+}
+
+/* ---------- verdict ---------- */
+.tg-verdict-row {
+  display: grid; grid-template-columns: minmax(320px, 0.95fr) minmax(0, 1.65fr); gap: 18px;
+  background: var(--card); border: 1px solid var(--line);
+  border-top: none; border-radius: 0 0 12px 12px; padding: 18px 20px;
+}
+.tg-verdict-row--compact {
+  grid-template-columns: 1fr;
+  gap: 12px;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+}
+.tg-verdict { border-radius: 10px; padding: 16px 18px; }
+.tg-verdict h2 { margin: 0 0 8px; font-size: 17px; }
+.tg-verdict p { margin: 5px 0; font-size: 13.5px; }
+.tg-verdict--wait { background: var(--amber-bg); color: var(--amber-ink); }
+.tg-verdict--enter { background: var(--green-bg); color: var(--green-ink); }
+.tg-verdict--aside { background: #fee2e2; color: #991b1b; }
+.tg-gate { opacity: .75; font-size: 12px !important; font-style: italic; }
+
+.tg-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tg-tiles--compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* stacks so the no-setup story can sit under the empty-state line */
+.tg-tiles--empty {
+  display: flex; flex-direction: column; align-items: stretch; gap: 10px;
+  color: var(--muted); font-size: 13px;
+}
+.tg-tile {
+  background: #f8fafc; border: 1px solid var(--line);
+  border-radius: 10px; padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.tg-tile-label { font-size: 11.5px; color: var(--muted); }
+.tg-tile strong { font-size: 19px; font-variant-numeric: tabular-nums; }
+.tg-plan-meta {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.tg-plan-checklist {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+}
+.tg-plan-check {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 8px;
+  align-items: start;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 11px;
+}
+.tg-plan-check strong,
+.tg-plan-check span {
+  display: block;
+}
+.tg-plan-check strong { font-size: 12.5px; }
+.tg-plan-check span { font-size: 11.5px; color: var(--muted); }
+.tg-plan-check-icon { font-size: 13px; line-height: 1.2; font-weight: 700; }
+.tg-plan-check--pass .tg-plan-check-icon { color: #15803d; }
+.tg-plan-check--fail .tg-plan-check-icon { color: #dc2626; }
+.tg-plan-notes,
+.tg-plan-alts {
+  grid-column: 1 / -1;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fff;
+}
+.tg-plan-notes p,
+.tg-plan-alts p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.tg-plan-alts strong { font-size: 12.5px; }
+.tg-ai-card {
+  grid-column: 1 / -1;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  padding: 12px 13px;
+  background: linear-gradient(180deg, #f8fbff 0%, #f1f5ff 100%);
+}
+.tg-ai-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  color: #1e3a8a;
+  font-size: 12px;
+}
+.tg-ai-type {
+  margin: 0 0 4px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.tg-ai-levels,
+.tg-ai-risk {
+  font-size: 12px;
+  color: #334155;
+}
+.tg-ai-why p {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: #475569;
+}
+
+.tg-green { color: #15803d; }
+.tg-red { color: #dc2626; }
+.tg-muted { color: var(--muted); }
+
+.tg-loading, .tg-error {
+  background: var(--card); border: 1px solid var(--line); border-top: none;
+  border-radius: 0 0 12px 12px; padding: 40px; text-align: center; color: var(--muted);
+}
+.tg-error { color: #b91c1c; background: #fef2f2; }
+
+.tg-foot { margin-top: 14px; text-align: center; font-size: 11.5px; color: var(--muted); }
+
+/* ---------- paper-trade button (in the verdict tiles) ---------- */
+.tg-take {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin-top: 2px;
+}
+.tg-take-btn {
+  padding: 9px 18px; border: none; border-radius: 8px; cursor: pointer;
+  background: #4f46e5; color: #fff; font-size: 13.5px; font-weight: 600;
+}
+.tg-take-btn:hover { background: #4338ca; }
+.tg-take-btn:disabled { opacity: .55; cursor: default; }
+.tg-take-note { font-size: 11.5px; color: var(--muted); }
+
+.tg-trade-msg {
+  margin-top: 12px; padding: 10px 14px; border-radius: 10px;
+  background: #eef2ff; border: 1px solid #c7d2fe; color: #3730a3; font-size: 13px;
+}
+
+/* ---------- positions & alerts panel ---------- */
+.tg-positions {
+  margin-top: 14px; background: var(--card);
+  border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px;
+}
+.tg-pos-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.tg-pos-title { display: flex; align-items: baseline; gap: 10px; }
+.tg-pos-title strong { font-size: 15px; }
+.tg-pos-sub { font-size: 11.5px; color: var(--muted); }
+.tg-pos-monitor { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.tg-pos-monitor strong { color: var(--ink); }
+.tg-dot { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1; display: inline-block; }
+.tg-dot--on { background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.2); }
+
+.tg-account {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px; margin-bottom: 14px;
+}
+.tg-metric {
+  background: #f8fafc; border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;
+}
+.tg-metric-label { font-size: 11px; color: var(--muted); }
+.tg-metric strong { font-size: 17px; font-variant-numeric: tabular-nums; }
+
+.tg-pos-empty { font-size: 13px; color: var(--muted); padding: 8px 0; }
+
+.tg-ledger-tools {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.tg-ledger-range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-end;
+}
+.tg-ledger-range label {
+  display: grid;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.tg-ledger-range input {
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--ink);
+  background: #fff;
+}
+.tg-ledger-pairs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.tg-ledger-pair {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  display: grid;
+  gap: 3px;
+}
+.tg-ledger-pair strong { font-size: 13px; }
+.tg-ledger-pair span { font-size: 11.5px; color: var(--muted); }
+.tg-workbench-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.tg-workbench-tab {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.tg-workbench-tab--on {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #3730a3;
+  font-weight: 600;
+}
+.tg-workbench {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+.tg-workbench-pane {
+  border: 1px solid var(--line);
+  padding: 14px;
+  border-radius: 12px;
+  background: #fff;
+  min-width: 0;
+}
+.tg-analyst {
+  display: grid;
+  gap: 14px;
+}
+.tg-analyst-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.tg-analyst-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-right: 8px;
+}
+.tg-analyst-badge--agrees { background: #dcfce7; color: #166534; }
+.tg-analyst-badge--cautious { background: #fef3c7; color: #92400e; }
+.tg-analyst-badge--disagrees { background: #fee2e2; color: #991b1b; }
+.tg-analyst-label {
+  font-size: 18px;
+  margin-right: 8px;
+}
+.tg-analyst-levels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+.tg-analyst-levels p {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8fafc;
+}
+.tg-analyst-block {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 12px 14px;
+}
+.tg-analyst-block strong {
+  display: block;
+  margin-bottom: 6px;
+}
+.tg-analyst-block p {
+  margin: 0;
+  color: #334155;
+}
+.tg-ledger-table-wrap {
+  overflow-x: auto;
+}
+.tg-ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.tg-ledger-table th,
+.tg-ledger-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.tg-ledger-table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: var(--muted);
+}
+
+.tg-alert-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.tg-alert {
+  border: 1px solid var(--line); border-left-width: 3px; border-radius: 10px; padding: 10px 12px;
+}
+.tg-alert--live { border-left-color: #6366f1; }
+.tg-alert--win { border-left-color: #22c55e; background: #f0fdf4; }
+.tg-alert--loss { border-left-color: #ef4444; background: #fef2f2; }
+.tg-alert--dead { border-left-color: #cbd5e1; opacity: .7; }
+
+.tg-alert-top { display: flex; align-items: center; gap: 8px; }
+.tg-side { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px; }
+.tg-side--long { background: #dcfce7; color: #15803d; }
+.tg-side--short { background: #fee2e2; color: #b91c1c; }
+.tg-alert-src { font-size: 12px; color: var(--muted); }
+.tg-alert-state { font-size: 11px; font-weight: 700; letter-spacing: .03em; }
+.tg-alert-state--live { color: #4f46e5; }
+.tg-alert-state--win { color: #15803d; }
+.tg-alert-state--loss { color: #b91c1c; }
+.tg-alert-state--dead { color: #94a3b8; }
+.tg-alert-rr { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tg-close-btn {
+  margin-left: auto; padding: 5px 12px; border: 1px solid var(--line);
+  border-radius: 7px; background: #fff; cursor: pointer; font-size: 12px; color: var(--ink);
+}
+.tg-close-btn:hover { border-color: #94a3b8; }
+.tg-close-btn:disabled { opacity: .5; cursor: default; }
+
+.tg-steps { display: flex; gap: 6px; margin: 8px 0 6px; }
+.tg-step {
+  font-size: 10.5px; text-transform: lowercase; color: #94a3b8;
+  padding: 2px 8px; border: 1px solid var(--line); border-radius: 12px; background: #fff;
+}
+.tg-step--done { color: #4338ca; border-color: #c7d2fe; background: #eef2ff; font-weight: 600; }
+
+.tg-alert-levels {
+  display: flex; gap: 14px; flex-wrap: wrap; margin-top: 6px;
+  font-size: 12px; font-variant-numeric: tabular-nums;
+}
+.tg-alert-note { margin-top: 6px; font-size: 11.5px; color: #475569; }
+/* ---- the office assistant ---------------------------------------------- */
+.tg-clippy {
+  position: fixed; right: 18px; bottom: 18px; z-index: 60;
+  display: flex; align-items: flex-end; gap: 10px;
+  pointer-events: none;               /* only the children take clicks */
+}
+.tg-clippy > * { pointer-events: auto; }
+
+.tg-clippy-char {
+  position: relative; flex: 0 0 auto;
+  width: 62px; height: 96px; padding: 0;
+  border: none; background: none; cursor: pointer;
+  filter: drop-shadow(0 6px 10px rgba(15, 23, 42, .22));
+  /* slow on purpose: this thing lives in peripheral vision all day */
+  animation: tg-clip-bob 11s ease-in-out infinite;
+}
+.tg-clippy-char:hover { animation-duration: 5s; }
+.tg-clip-svg { width: 100%; height: 100%; overflow: visible; }
+.tg-clip-body { stroke: #8fa3bf; }
+.tg-clip-eye { fill: #fff; stroke: #48566b; stroke-width: 2.5; }
+.tg-clip-pupil { fill: #1e293b; animation: tg-clip-look 17s ease-in-out infinite; }
+.tg-clip-brow { stroke: #48566b; fill: none; transform-origin: center; }
+
+/* eyelids: a scaleY blink on the whole face group reads as a wink of the eyes */
+.tg-clip-face { animation: tg-clip-blink 9s ease-in-out infinite; transform-origin: 37px 40px; }
+
+@keyframes tg-clip-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-4px) rotate(-1.5deg); }
+}
+@keyframes tg-clip-blink {
+  /* the blink itself stays quick — a slow blink looks unwell */
+  0%, 95%, 100% { transform: scaleY(1); }
+  97%           { transform: scaleY(.08); }
+}
+@keyframes tg-clip-look {
+  0%, 45%, 100% { transform: translateX(0); }
+  60%, 80%      { transform: translateX(-3px); }
+}
+@keyframes tg-clip-nudge {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  25%      { transform: rotate(-7deg) translateY(-4px); }
+  55%      { transform: rotate(6deg) translateY(-1px); }
+  80%      { transform: rotate(-3deg) translateY(-2px); }
+}
+.tg-clippy--nudge .tg-clippy-char { animation: tg-clip-nudge 1.7s ease-in-out; }
+
+/* moods — the brows carry the expression */
+.tg-clippy--watching .tg-clip-brow--l { transform: translateY(-2px) rotate(-6deg); }
+.tg-clippy--watching .tg-clip-brow--r { transform: translateY(-2px) rotate(6deg); }
+.tg-clippy--excited  .tg-clip-body { stroke: #34d399; }
+.tg-clippy--excited  .tg-clip-brow--l { transform: translateY(-5px) rotate(-12deg); }
+.tg-clippy--excited  .tg-clip-brow--r { transform: translateY(-5px) rotate(12deg); }
+.tg-clippy--alarmed  .tg-clip-body { stroke: #f87171; }
+.tg-clippy--alarmed  .tg-clip-brow--l { transform: translateY(3px) rotate(20deg); }
+.tg-clippy--alarmed  .tg-clip-brow--r { transform: translateY(3px) rotate(-20deg); }
+/* alarmed still repeats, but with a long pause between shakes rather than a
+   continuous jitter — it should register as urgent, not frantic */
+.tg-clippy--alarmed  .tg-clippy-char { animation: tg-clip-alarm 6s ease-in-out infinite; }
+@keyframes tg-clip-alarm {
+  0%, 72%, 100% { transform: rotate(0deg) translateY(0); }
+  78%           { transform: rotate(-7deg) translateY(-4px); }
+  85%           { transform: rotate(6deg) translateY(-1px); }
+  92%           { transform: rotate(-3deg) translateY(-2px); }
+}
+.tg-clippy--asleep   .tg-clip-body { stroke: #cbd5e1; }
+.tg-clippy--asleep   .tg-clip-face { animation: none; transform: scaleY(.12); }
+.tg-clippy--asleep   .tg-clippy-char { animation-duration: 16s; opacity: .75; }
+
+.tg-clippy-badge {
+  position: absolute; top: 2px; right: -2px;
+  width: 18px; height: 18px; border-radius: 999px;
+  background: #dc2626; color: #fff; font-size: 12px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.tg-clippy-bubble {
+  width: min(340px, calc(100vw - 120px));
+  max-height: min(60vh, 460px); overflow-y: auto; overscroll-behavior: contain;
+  background: #fffdf3; border: 1px solid #e3d9a8; border-radius: 12px;
+  padding: 10px 12px 8px;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, .18);
+  animation: tg-clip-pop .32s ease-out;
+}
+@keyframes tg-clip-pop {
+  from { opacity: 0; transform: translateY(6px) scale(.98); }
+  to   { opacity: 1; transform: none; }
+}
+.tg-clippy-bubble--good  { border-color: #86efac; background: #f4fff8; }
+.tg-clippy-bubble--bad   { border-color: #fca5a5; background: #fff6f6; }
+.tg-clippy-bubble--watch { border-color: #c7d2fe; background: #f7f8ff; }
+
+.tg-clippy-bubble-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tg-clippy-label {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; color: #94a3b8;
+}
+.tg-clippy-min {
+  border: none; background: none; cursor: pointer;
+  color: #94a3b8; font-size: 16px; line-height: 1; padding: 0 4px;
+}
+.tg-clippy-min:hover { color: var(--ink); }
+
+.tg-clippy-text { margin: 6px 0 0; font-size: 12.5px; line-height: 1.5; color: #334155; }
+.tg-clippy-level {
+  margin: 6px 0 0; padding: 4px 8px; border-radius: 7px;
+  background: rgba(99, 102, 241, .1); color: #4338ca;
+  font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.tg-clippy-bubble--bad .tg-clippy-level { background: rgba(239, 68, 68, .1); color: #b91c1c; }
+
+.tg-clippy-nav { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.tg-clippy-nav button {
+  border: 1px solid var(--line); background: #fff; border-radius: 6px;
+  min-width: 24px; padding: 1px 7px; cursor: pointer; color: var(--muted); font-size: 13px;
+}
+.tg-clippy-nav button:disabled { opacity: .4; cursor: default; }
+.tg-clippy-nav span { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tg-clippy-snap { margin-left: auto; font-size: 11px !important; color: #4338ca !important; }
+
+.tg-clippy-teaser {
+  max-width: min(260px, calc(100vw - 130px));
+  text-align: left; font-size: 11.5px; line-height: 1.35; color: #475569;
+  background: #fffdf3; border: 1px solid #e3d9a8; border-radius: 10px;
+  padding: 7px 10px; cursor: pointer;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, .12);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.tg-clippy-teaser:hover { border-color: #c8b96a; }
+
+@media (max-width: 700px) {
+  .tg-clippy { right: 10px; bottom: 10px; }
+  .tg-clippy-char { width: 48px; height: 74px; }
+  .tg-clippy-bubble { width: calc(100vw - 90px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tg-clippy-char, .tg-clip-face, .tg-clip-pupil, .tg-clippy-bubble { animation: none !important; }
+}
+
+/* ---- storyteller: how the move should play out ------------------------- */
+.tg-story {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+.tg-story-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.tg-story-head strong {
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted);
+}
+.tg-story-flag {
+  font-size: 10.5px; color: #b91c1c; background: #fee2e2;
+  border-radius: 999px; padding: 1px 8px; white-space: nowrap;
+}
+.tg-story-situation { margin: 0; font-size: 12.5px; line-height: 1.45; color: #334155; }
+
+.tg-story-beats { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 9px; }
+.tg-story-beat {
+  position: relative; display: grid; grid-template-columns: 18px minmax(0, 1fr);
+  gap: 8px; align-items: start;
+}
+/* connector between consecutive marks */
+.tg-story-beat + .tg-story-beat::before {
+  content: ''; position: absolute; left: 8px; top: -9px; height: 9px;
+  border-left: 1px solid var(--line);
+}
+.tg-story-mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; background: #f1f5f9; color: #94a3b8;
+}
+.tg-story-beat strong { display: block; font-size: 12.5px; line-height: 1.3; color: #475569; }
+.tg-story-beat span:not(.tg-story-mark) {
+  display: block; margin-top: 2px; font-size: 11.5px; line-height: 1.4; color: var(--muted);
+}
+.tg-story-beat--done   .tg-story-mark { color: #047857; background: rgba(16, 185, 129, .14); }
+.tg-story-beat--active .tg-story-mark { color: #4338ca; background: rgba(99, 102, 241, .14); }
+.tg-story-beat--active strong { color: var(--ink); font-weight: 700; }
+.tg-story-beat--failed .tg-story-mark { color: #b91c1c; background: rgba(239, 68, 68, .12); }
+.tg-story-beat--opt .tg-story-mark { background: #fff; border: 1px dashed var(--line); }
+.tg-story-beat .tg-story-prov { color: #4338ca; font-weight: 600; }
+
+.tg-story-kill {
+  margin: 2px 0 0; padding-left: 8px; font-size: 11.5px; line-height: 1.4;
+  color: #475569; border-left: 2px solid #fca5a5;
+}
+.tg-story-kill--hit { color: #b91c1c; font-weight: 600; border-left-color: #dc2626; }
+
+.tg-story-chapter { border-top: 1px dashed var(--line); padding-top: 8px; }
+.tg-story-chapter > strong { display: block; margin-bottom: 4px; font-size: 12px; }
+.tg-story-chapter p,
+.tg-story-more p { margin: 3px 0; font-size: 11.5px; line-height: 1.4; color: var(--muted); }
+.tg-story-chapter p strong,
+.tg-story-more p strong { color: #475569; }
+.tg-story-more { border-top: 1px dashed var(--line); padding-top: 8px; }
+.tg-story-more summary { cursor: pointer; font-size: 12px; color: #4338ca; list-style: none; }
+.tg-story-more summary::marker { content: ''; }
+.tg-story-more summary::-webkit-details-marker { display: none; }
+.tg-story-more summary::before { content: '▸ '; }
+.tg-story-more[open] summary::before { content: '▾ '; }
+
+.tg-setup-why {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, .22);
+  background: rgba(248, 250, 252, .88);
+}
+.tg-setup-why-row {
+  display: grid;
+  grid-template-columns: 18px 108px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  font-size: 12.5px;
+}
+.tg-setup-why-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 11px;
+}
+.tg-setup-why-mark--pass {
+  color: #047857;
+  background: rgba(16, 185, 129, .14);
+}
+.tg-setup-why-mark--wait {
+  color: #4338ca;
+  background: rgba(99, 102, 241, .12);
+}
+.tg-setup-why-mark--info {
+  color: #0369a1;
+  background: rgba(14, 165, 233, .12);
+}
+.tg-setup-why-name {
+  font-weight: 700;
+  color: var(--ink);
+}
+.tg-setup-why-detail {
+  color: #475569;
+  line-height: 1.35;
+}
+.tg-alert-pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+.tg-alert-pager-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.tg-connectors {
+  margin-top: 14px; background: var(--card);
+  border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px;
+}
+.tg-connector-form {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.tg-connector-field {
+  display: grid;
+  gap: 5px;
+}
+.tg-connector-field span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.tg-connector-field input {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.tg-connector-advanced {
+  width: fit-content;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #3730a3;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.tg-connector-advanced-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.tg-connector-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+@media (max-width: 1100px) {
+  .tg-chart-row {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+  .tg-verdict-row {
+    grid-template-columns: 1fr;
+  }
+  .tg-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .tg-ledger-sections {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .tg-verdict-row { grid-template-columns: 1fr; }
+  .tg-topbar { flex-wrap: wrap; }
+  .tg-account { grid-template-columns: repeat(3, 1fr); }
+  .tg-chart-row { grid-template-columns: 1fr; }
+  .tg-checklist {
+    flex-basis: auto; max-height: none;
+    border-left: none; border-top: 1px solid var(--line);
+  }
+  .tg-rail {
+    flex-basis: auto;
+    border-left: none;
+    border-top: 1px solid var(--line);
+    min-height: 0;
+    /* stacked under the chart: still capped so the pane scrolls itself */
+    height: auto;
+    max-height: 70vh;
+  }
+  .tg-chart-wrap {
+    height: max(380px, 56vh);
+  }
+  .tg-macro-grid { grid-template-columns: 1fr; }
+  .tg-connector-advanced-fields { grid-template-columns: 1fr; }
+  .tg-alert-pager { flex-direction: column; align-items: flex-start; }
+  .tg-ledger-tools { align-items: stretch; }
+  .tg-ledger-range { flex-direction: column; align-items: stretch; }
+}
+
+/* ---- end-of-day what-if review panel ------------------------------------ */
+.tg-eod-card { margin-top: 14px; }
+.tg-eod-card .tg-analyst-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.tg-eod-card .tg-analyst-head h3 { margin: 0; font-size: 15px; }
+.tg-eod-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
+.tg-eod-table th,
+.tg-eod-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.tg-eod-table tr.tg-eod-flaw { background: #fef3c7; }
+.tg-analyst-list { margin: 4px 0 0; padding-left: 18px; color: #334155; }
+.tg-eod-recs { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 10px; }
+.tg-eod-rec { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: #f8fafc; }
+.tg-eod-rec-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.tg-eod-rec-actions { display: inline-flex; gap: 6px; }
+
+.tg-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.tg-eod-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+.tg-eod-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}

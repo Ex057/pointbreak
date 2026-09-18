@@ -6,11 +6,12 @@ Python port of the app's `DerivWebSocketClient` (JS) with the same protocol
 and robustness guarantees:
 
   * subscribe to live ticks                     {"ticks": SYM, "subscribe": 1}
-  * candle history + streaming updates          {"ticks_history": ..., "style":
-                                                 "candles", "subscribe": 1}
+  * seed + stream candle histories              {"ticks_history": ...,
+                                                 "style": "candles",
+                                                 "subscribe": 1}
   * request/response matching via req_id / echo_req
   * application-level ping every 15 s           {"ping": 1}
-  * exponential-backoff auto reconnect (with full re-subscribe)
+  * exponential-backoff auto reconnect
   * staleness watchdog: no message for N sec -> force reconnect
   * thread-safe in-memory cache of prices + candle stacks
 
@@ -73,7 +74,15 @@ DERIV_CONFIG = {
     "status": {"connected": False, "last_msg": 0.0, "reconnects": 0},
 }
 
-_DEFAULT_URL = "wss://ws.derivws.com/websockets/v3?app_id={app_id}"
+# Current no-auth, read-only Options market-data endpoint.  ``app_id`` remains
+# part of the public constructor for backwards compatibility and for custom
+# legacy ``DERIV_URL`` values, but the official public endpoint does not need it.
+_DEFAULT_URL = "wss://api.derivws.com/trading/v1/options/ws/public"
+
+
+def _resolve_url(url=None, app_id=1089):
+    """Resolve a custom URL while retaining support for ``{app_id}`` templates."""
+    return (url or _DEFAULT_URL).format(app_id=app_id)
 
 
 class DerivWebSocketClient:
@@ -103,9 +112,11 @@ class DerivWebSocketClient:
         granularities=(60,),
         app_id=1089,
         url=None,
+        api_token="",
         candles_count=300,
         candles_maxlen=1000,
         ping_interval=15.0,
+        poll_interval=2.0,
         stale_after=30.0,
         max_backoff=60.0,
         prices_ref=None,
@@ -114,12 +125,16 @@ class DerivWebSocketClient:
         on_tick=None,
         on_candle=None,
     ):
-        self.url = url or _DEFAULT_URL.format(app_id=app_id)
+        self.url = _resolve_url(url, app_id)
+        self.api_token = api_token or ""
         self.symbols = list(dict.fromkeys(symbols))
         self.granularities = list(dict.fromkeys(int(g) for g in granularities))
         self.candles_count = candles_count
         self.candles_maxlen = candles_maxlen
         self.ping_interval = ping_interval
+        # Kept for backwards-compatible construction. The feed is event-driven;
+        # it no longer polls on this interval.
+        self.poll_interval = poll_interval
         self.stale_after = stale_after
         self.max_backoff = max_backoff
         self.on_tick = on_tick
@@ -137,9 +152,10 @@ class DerivWebSocketClient:
 
         self._req_id = 0
         self._pending: dict[int, dict] = {}      # req_id -> {"event", "resp"}
-        self._sub_ids: dict[tuple, str] = {}     # (kind, symbol, gran) -> id
         self._backoff = 1.0
         self._last_msg = 0.0
+        self._subscribed_ticks: set[str] = set()
+        self._subscribed_candles: set[tuple[str, int]] = set()
 
         for s in self.symbols:
             self.candles.setdefault(s, {})
@@ -179,6 +195,65 @@ class DerivWebSocketClient:
         """Return the candle stack as a list of dicts (oldest -> newest)."""
         with self._lock:
             return list(self.candles.get(symbol, {}).get(int(granularity), []))
+
+    def configure(self, symbols, granularities):
+        """Update desired subscriptions without restarting the websocket.
+
+        Adding timeframes for the current symbol is incremental. Switching the
+        selected symbol forgets the old streams and subscribes the new set on
+        the same transport connection.
+        """
+        next_symbols = list(dict.fromkeys(symbols))
+        next_granularities = list(dict.fromkeys(int(g) for g in granularities))
+        with self._lock:
+            symbol_changed = next_symbols != self.symbols
+            self.symbols = next_symbols
+            self.granularities = next_granularities
+            for symbol in self.symbols:
+                self.candles.setdefault(symbol, {})
+                for granularity in self.granularities:
+                    self.candles[symbol].setdefault(
+                        granularity, deque(maxlen=self.candles_maxlen)
+                    )
+        if not self._connected.is_set() or self._ws is None:
+            return self
+        if symbol_changed:
+            self._send({"forget_all": "ticks"})
+            self._send({"forget_all": "candles"})
+            self._subscribed_ticks.clear()
+            self._subscribed_candles.clear()
+        self._subscribe_desired()
+        return self
+
+    def fetch_history(self, symbol, granularity, start, end, timeout=15.0):
+        """One-shot historical candle query over an explicit [start, end] epoch
+        window (Deriv `ticks_history` with `style:candles`). Unlike the polling
+        loop (which is hardcoded to `end:"latest"`), this lets the what-if replay
+        reconstruct what price did after a rejected setup. Returns a list of
+        normalized candle dicts oldest->newest; [] on error/no data.
+
+        Works for any symbol regardless of the active subscription — it's a
+        stateless request/response, not a subscribe."""
+        payload = {
+            "ticks_history": symbol,
+            "style": "candles",
+            "granularity": int(granularity),
+            "start": int(start),
+            "end": int(end),
+            "adjust_start_time": 1,
+            "count": 5000,
+        }
+        resp = self.request(payload, timeout=timeout)
+        if not resp or resp.get("error"):
+            return []
+        out = []
+        for c in resp.get("candles", []) or []:
+            try:
+                out.append(self._norm_candle(c, granularity=granularity))
+            except Exception:  # pragma: no cover - defensive against odd rows
+                continue
+        out.sort(key=lambda r: r["epoch"])
+        return out
 
     def request(self, payload: dict, timeout=10.0):
         """
@@ -228,7 +303,11 @@ class DerivWebSocketClient:
                 self._backoff = 1.0
                 self._connected.set()
                 self.status["connected"] = True
-                self._subscribe_all()
+                self._authorize_if_needed()
+                self._subscribed_ticks.clear()
+                self._subscribed_candles.clear()
+                self._subscribe_desired()
+                self.status["transport"] = "subscriptions"
 
                 while not self._stop.is_set():
                     raw = self._ws.recv()
@@ -251,21 +330,59 @@ class DerivWebSocketClient:
                 self._stop.wait(sleep)
         self._close_socket()
 
-    # ---- (re)subscribe everything after each connect ------------------------
-    def _subscribe_all(self):
-        self._sub_ids.clear()
-        for s in self.symbols:
-            self._send({"ticks": s, "subscribe": 1})
-            for g in self.granularities:
+    # ---- authorize (optional, token-gated) ---------------------------------
+    def _authorize_if_needed(self):
+        """Authorize only custom legacy endpoints that were configured with a token.
+
+        The current public Options endpoint is deliberately unauthenticated and
+        rejects account-scoped operations such as ``authorize``.
+        """
+        if not self.api_token or self._ws is None or self.url == _DEFAULT_URL:
+            return
+        try:
+            self._ws.send(json.dumps({"authorize": self.api_token}))
+            deadline = time.time() + 10.0
+            while time.time() < deadline:
+                raw = self._ws.recv()
+                if not raw:
+                    continue
+                self._last_msg = time.time()
+                msg = json.loads(raw)
+                if msg.get("msg_type") == "authorize":
+                    auth = msg.get("authorize", {})
+                    self.status["authorized"] = True
+                    self.status["loginid"] = auth.get("loginid")
+                    log.info("deriv authorized loginid=%s country=%s",
+                             auth.get("loginid"), auth.get("country"))
+                    return
+                if msg.get("error"):
+                    self.status["authorized"] = False
+                    log.error("deriv authorize failed: %s", msg["error"])
+                    return
+        except Exception as exc:  # pragma: no cover - network dependent
+            log.warning("deriv authorize error: %s", exc)
+
+    # ---- subscriptions -------------------------------------------------------
+    def _subscribe_desired(self):
+        """Subscribe any desired streams not already active on this socket."""
+        for symbol in list(self.symbols):
+            if symbol not in self._subscribed_ticks:
+                self._send({"ticks": symbol, "subscribe": 1})
+                self._subscribed_ticks.add(symbol)
+            for granularity in list(self.granularities):
+                key = (symbol, granularity)
+                if key in self._subscribed_candles:
+                    continue
                 self._send({
-                    "ticks_history": s,
+                    "ticks_history": symbol,
                     "style": "candles",
-                    "granularity": g,
+                    "granularity": granularity,
                     "count": self.candles_count,
                     "end": "latest",
                     "adjust_start_time": 1,
                     "subscribe": 1,
                 })
+                self._subscribed_candles.add(key)
 
     # ---- ping & watchdog -----------------------------------------------------
     def _ping_loop(self):
@@ -311,11 +428,37 @@ class DerivWebSocketClient:
                 "price": float(t["quote"]),
                 "epoch": int(t["epoch"]),
                 "ts": time.time(),
+                "received_at": time.time(),
                 "source": "deriv",
             }
-            self._sub_ids[("tick", sym, None)] = t.get("id")
+            if sym not in getattr(self, "_seen_ticks", set()):
+                seen = getattr(self, "_seen_ticks", set())
+                seen.add(sym)
+                self._seen_ticks = seen
+                log.info("first tick %s price=%s", sym, self.prices[sym]["price"])
             if self.on_tick:
                 self.on_tick(sym, self.prices[sym])
+
+        elif mtype == "history":
+            sym = echo.get("ticks_history")
+            history = msg.get("history") or {}
+            prices = history.get("prices") or []
+            times = history.get("times") or []
+            if sym and prices and times:
+                self.prices[sym] = {
+                    "price": float(prices[-1]),
+                    "epoch": int(times[-1]),
+                    "ts": time.time(),
+                    "received_at": time.time(),
+                    "source": "deriv",
+                }
+                if sym not in getattr(self, "_seen_ticks", set()):
+                    seen = getattr(self, "_seen_ticks", set())
+                    seen.add(sym)
+                    self._seen_ticks = seen
+                    log.info("first tick %s price=%s", sym, self.prices[sym]["price"])
+                if self.on_tick:
+                    self.on_tick(sym, self.prices[sym])
 
         elif mtype == "candles":
             # initial history batch
@@ -326,17 +469,20 @@ class DerivWebSocketClient:
             with self._lock:
                 stack.clear()
                 for c in msg.get("candles", []):
-                    stack.append(self._norm_candle(c))
-            if msg.get("subscription"):
-                self._sub_ids[("candles", sym, gran)] = msg["subscription"]["id"]
-            log.info("history loaded %s g=%s (%d bars)", sym, gran, len(stack))
+                    stack.append(self._norm_candle(c, granularity=gran))
+            seen = getattr(self, "_seen_history", set())
+            key = (sym, gran)
+            if key not in seen:
+                seen.add(key)
+                self._seen_history = seen
+                log.info("history loaded %s g=%s (%d bars)", sym, gran, len(stack))
 
         elif mtype == "ohlc":
             # streaming candle update: replace last bar or append new one
             o = msg["ohlc"]
             sym = o["symbol"]
             gran = int(o.get("granularity", echo.get("granularity", 60)))
-            bar = self._norm_candle(o, open_time=o.get("open_time"))
+            bar = self._norm_candle(o, open_time=o.get("open_time"), granularity=gran)
             stack = self.candles.setdefault(sym, {}).setdefault(
                 gran, deque(maxlen=self.candles_maxlen))
             with self._lock:
@@ -344,6 +490,12 @@ class DerivWebSocketClient:
                     stack[-1] = bar                  # same bucket -> update
                 else:
                     stack.append(bar)                # new bucket -> append
+            seen = getattr(self, "_seen_candles", set())
+            key = (sym, gran)
+            if key not in seen:
+                seen.add(key)
+                self._seen_candles = seen
+                log.info("first live candle %s g=%s epoch=%s", sym, gran, bar["epoch"])
             if self.on_candle:
                 self.on_candle(sym, gran, bar)
 
@@ -354,9 +506,22 @@ class DerivWebSocketClient:
             pass
 
     @staticmethod
-    def _norm_candle(c, open_time=None):
+    def _norm_candle(c, open_time=None, granularity=None):
+        """Normalise a candle, forcing its epoch onto the granularity grid.
+
+        A streaming `ohlc` message carries BOTH `open_time` (the bucket start) and
+        `epoch` (the time of the tick that produced the update). Falling back to
+        `epoch` stamps the bar with tick time, so every tick looks like a new
+        bucket: it appends instead of updating, and the stored series ends up with
+        23-37 second "candles" mixed into what is meant to be a 5m or 1H grid.
+        Two overlapping griddings of the same period make every ATR, swing and
+        pattern computed over them meaningless — and it is silent.
+        """
+        epoch = int(open_time if open_time is not None else c.get("epoch"))
+        if granularity:
+            epoch -= epoch % int(granularity)
         return {
-            "epoch": int(open_time if open_time is not None else c.get("epoch")),
+            "epoch": epoch,
             "open": float(c["open"]),
             "high": float(c["high"]),
             "low": float(c["low"]),
@@ -372,7 +537,7 @@ _client: DerivWebSocketClient | None = None
 
 def start_deriv_feed(symbols, granularities=(60,), app_id=1089,
                      wait=True, **kwargs) -> DerivWebSocketClient:
-    """Start (once) the background feed populating DERIV_CONFIG."""
+    """Start or reconfigure the background feed populating DERIV_CONFIG."""
     global _client
     if _client is None:
         _client = DerivWebSocketClient(
@@ -380,6 +545,8 @@ def start_deriv_feed(symbols, granularities=(60,), app_id=1089,
         ).start()
         if wait:
             _client.wait_ready(timeout=10)
+    else:
+        _client.configure(symbols, granularities)
     return _client
 
 
@@ -418,6 +585,18 @@ def get_live_price(symbol, fallback=None, max_age=10.0):
     return None
 
 
+def fetch_deriv_history(symbol, granularity=60, start=None, end=None):
+    """Module-level historical candle fetch over the running feed's connection.
+    Returns normalized candle dicts oldest->newest, or [] when no feed/data."""
+    if _client is None or start is None or end is None:
+        return []
+    try:
+        return _client.fetch_history(symbol, granularity, start, end)
+    except Exception as exc:  # pragma: no cover - network dependent
+        log.debug("deriv history fetch failed %s g=%s: %s", symbol, granularity, exc)
+        return []
+
+
 def get_candles_df(symbol, granularity=60):
     """Candle stack -> pandas DataFrame ready for PatternEngine."""
     import pandas as pd
@@ -428,7 +607,75 @@ def get_candles_df(symbol, granularity=60):
     if not df.empty:
         df["time"] = pd.to_datetime(df["epoch"], unit="s")
         df = df.set_index("time")[["open", "high", "low", "close"]]
+        df.attrs.update({
+            "source": "deriv",
+            "resolved_symbol": symbol,
+            "received_at": time.time(),
+            "provider_epoch": int(df.index[-1].timestamp()),
+            "realtime": True,
+        })
     return df
+
+
+def fetch_active_symbols(app_id=1089, url=None, timeout=10.0):
+    """Fetch Deriv active symbols over a short-lived websocket connection."""
+    if websocket is None:  # pragma: no cover
+        raise ImportError("deriv_feed needs `pip install websocket-client` to connect")
+
+    ws = websocket.create_connection(
+        _resolve_url(url, app_id),
+        timeout=timeout,
+    )
+    try:
+        ws.send(json.dumps({"active_symbols": "brief", "req_id": 1}))
+        while True:
+            raw = ws.recv()
+            if not raw:
+                continue
+            msg = json.loads(raw)
+            if msg.get("msg_type") == "active_symbols":
+                return msg.get("active_symbols", [])
+            if msg.get("error"):
+                raise RuntimeError(str(msg["error"]))
+    finally:
+        try:
+            ws.close()
+        except Exception:
+            pass
+
+
+def probe_symbol(symbol, app_id=1089, url=None, timeout=10.0):
+    """Check whether a market code returns usable history on the current feed."""
+    if websocket is None:  # pragma: no cover
+        raise ImportError("deriv_feed needs `pip install websocket-client` to connect")
+
+    ws = websocket.create_connection(
+        _resolve_url(url, app_id),
+        timeout=timeout,
+    )
+    try:
+        ws.send(json.dumps({
+            "ticks_history": symbol,
+            "count": 1,
+            "end": "latest",
+            "style": "ticks",
+            "req_id": 1,
+        }))
+        while True:
+            raw = ws.recv()
+            if not raw:
+                continue
+            msg = json.loads(raw)
+            if msg.get("error"):
+                return False
+            if msg.get("msg_type") == "history":
+                prices = (msg.get("history") or {}).get("prices") or []
+                return bool(prices)
+    finally:
+        try:
+            ws.close()
+        except Exception:
+            pass
 
 
 # =============================================================================
