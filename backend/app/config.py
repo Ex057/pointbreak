@@ -153,6 +153,6 @@ PREFERRED_MARKETS = [
 
 DEFAULT_PAIR_ID = "xauusd"
 
-# Data source for the current slice: "fixture" (deterministic synthetic candles,
-# no network) or "deriv" (live WebSocket). M2 flips the default to deriv.
-DATA_SOURCE = os.getenv("DATA_SOURCE", "fixture")
+# Deriv's public WebSocket is the production default and needs no token.
+# Tests explicitly select `fixture`; `yahoo` remains a real-market fallback.
+DATA_SOURCE = os.getenv("DATA_SOURCE", "deriv")

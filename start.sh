@@ -23,12 +23,12 @@ PIP="$VENV/bin/pip"
 BACKEND_PORT="${BACKEND_PORT:-8000}"
 FRONTEND_PORT="${FRONTEND_PORT:-5173}"
 # Honour .env's DATA_SOURCE (what testers set) unless an inline env var overrides
-# it, e.g. `DATA_SOURCE=fixture ./start.sh start`. Falls back to yahoo (free real
-# prices for gold/FX/US30/BTC, no key) when neither is set.
+# it, e.g. `DATA_SOURCE=fixture ./start.sh start`. Falls back to Deriv's free
+# public WebSocket when neither is set; no account or API token is required.
 if [ -z "${DATA_SOURCE:-}" ] && [ -f "$ROOT/.env" ]; then
   DATA_SOURCE="$(grep -E '^[[:space:]]*DATA_SOURCE=' "$ROOT/.env" | tail -1 | cut -d= -f2- | tr -d '[:space:]\r')"
 fi
-DATA_SOURCE="${DATA_SOURCE:-yahoo}"
+DATA_SOURCE="${DATA_SOURCE:-deriv}"
 DERIV_APP_ID="${DERIV_APP_ID:-1089}"
 BACKEND_RELOAD="${BACKEND_RELOAD:-0}"
 # Bind host. Default localhost-only. Set HOST=0.0.0.0 to let a phone / emulator
