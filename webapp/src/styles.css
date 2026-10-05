@@ -687,8 +687,10 @@ body {
 .tg-plan-check strong { font-size: 12.5px; }
 .tg-plan-check span { font-size: 11.5px; color: var(--muted); }
 .tg-plan-check-icon { font-size: 13px; line-height: 1.2; font-weight: 700; }
-.tg-plan-check--pass .tg-plan-check-icon { color: #15803d; }
-.tg-plan-check--fail .tg-plan-check-icon { color: #dc2626; }
+.tg-plan-check--passed .tg-plan-check-icon { color: #15803d; }
+.tg-plan-check--pending .tg-plan-check-icon { color: #d97706; }
+.tg-plan-check--failed .tg-plan-check-icon { color: #dc2626; }
+.tg-plan-check--informational .tg-plan-check-icon { color: #64748b; }
 .tg-plan-notes,
 .tg-plan-alts {
   grid-column: 1 / -1;
@@ -806,12 +808,127 @@ body {
 .tg-analysis-card dd { margin: 2px 0 0; font-weight: 600; font-size: 12px; }
 .tg-analysis-list { list-style: none; display: grid; gap: 7px; margin: 10px 0 0; padding: 0; }
 .tg-analysis-list li { border-left: 3px solid #cbd5e1; padding: 5px 0 5px 9px; display: grid; gap: 2px; }
-.tg-analysis-list li.is-pass { border-color: #22c55e; }
-.tg-analysis-list li.is-block { border-color: #f59e0b; }
+.tg-analysis-list li.is-pass,
+.tg-analysis-list li.is-passed { border-color: #22c55e; }
+.tg-analysis-list li.is-block,
+.tg-analysis-list li.is-pending { border-color: #f59e0b; }
+.tg-analysis-list li.is-failed { border-color: #ef4444; }
+.tg-analysis-list li.is-informational { border-color: #94a3b8; }
+.tg-check-state--passed { color: #15803d; }
+.tg-check-state--pending { color: #d97706; }
+.tg-check-state--failed { color: #dc2626; }
+.tg-check-state--informational { color: #64748b; }
 .tg-analysis-list strong { font-size: 11.5px; }
 .tg-analysis-list span { font-size: 11.5px; color: var(--muted); }
 .tg-analysis-evidence { border-top: 1px solid var(--line); padding-top: 10px; }
 .tg-analysis-risk { color: #92400e !important; }
+
+/* ---------- reconnaissance ---------- */
+.tg-recon {
+  margin-top: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px;
+}
+.tg-recon-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+.tg-recon-head h2 { margin: 2px 0 4px; font-size: 22px; letter-spacing: -.02em; }
+.tg-recon-head p { margin: 0; color: var(--muted); }
+.tg-recon-actions { display: flex; align-items: center; gap: 9px; }
+.tg-recon-status {
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  background: #f1f5f9;
+  color: #475569;
+}
+.tg-recon-status--ready { background: var(--green-bg); color: var(--green-ink); }
+.tg-recon-status--partial { background: var(--amber-bg); color: var(--amber-ink); }
+.tg-recon-status--unavailable { background: #fee2e2; color: #991b1b; }
+.tg-recon-overview {
+  display: grid;
+  grid-template-columns: minmax(210px, 1.35fr) repeat(4, minmax(125px, 1fr));
+  gap: 9px;
+  margin-bottom: 12px;
+}
+.tg-recon-overview > div {
+  display: grid;
+  gap: 3px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8fafc;
+}
+.tg-recon-overview span { color: var(--muted); font-size: 10.5px; }
+.tg-recon-overview strong { font-size: 14px; font-variant-numeric: tabular-nums; text-transform: capitalize; }
+.tg-recon-call { border-left-width: 4px !important; }
+.tg-recon-call--bullish { border-left-color: #22c55e !important; background: #f0fdf4 !important; }
+.tg-recon-call--bearish { border-left-color: #ef4444 !important; background: #fef2f2 !important; }
+.tg-recon-call--neutral { border-left-color: #f59e0b !important; background: #fffbeb !important; }
+.tg-recon-call strong { font-size: 16px; }
+.tg-recon-call small { color: #475569; }
+.tg-recon-conflicts { display: grid; gap: 5px; margin: 0 0 12px; }
+.tg-recon-conflicts span {
+  padding: 8px 10px;
+  border: 1px solid var(--amber-line);
+  border-radius: 8px;
+  background: var(--amber-bg);
+  color: var(--amber-ink);
+  font-size: 11.5px;
+}
+.tg-recon-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; }
+.tg-recon-card {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-top: 4px solid #94a3b8;
+  border-radius: 10px;
+  padding: 12px;
+  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+}
+.tg-recon-card--bullish { border-top-color: #22c55e; }
+.tg-recon-card--bearish { border-top-color: #ef4444; }
+.tg-recon-card--neutral { border-top-color: #f59e0b; }
+.tg-recon-card--off { opacity: .7; }
+.tg-recon-card--off > p { color: var(--muted); font-size: 11.5px; }
+.tg-recon-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tg-recon-card-head > strong { font-size: 18px; }
+.tg-recon-card-head > span { color: #475569; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tg-recon-state { display: grid; gap: 2px; margin: 10px 0; }
+.tg-recon-state strong { font-size: 12px; }
+.tg-recon-state span { color: var(--muted); font-size: 10.5px; text-transform: capitalize; }
+.tg-recon-levels { display: grid; gap: 7px; margin: 0; }
+.tg-recon-levels > div { border-top: 1px solid var(--line); padding-top: 6px; min-width: 0; }
+.tg-recon-levels dt { color: var(--muted); font-size: 9.5px; }
+.tg-recon-levels dd { margin: 1px 0; font-size: 12px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.tg-recon-levels small { display: block; color: var(--muted); font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tg-recon-card-meta { display: grid; gap: 3px; margin-top: 9px; color: var(--muted); font-size: 9.5px; }
+.tg-recon-card-meta strong { color: var(--ink); text-transform: capitalize; }
+.tg-recon-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 11px;
+  color: var(--muted);
+  font-size: 10.5px;
+}
+.tg-recon-error {
+  margin-top: 10px;
+  padding: 9px 11px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 11.5px;
+}
 
 /* ---------- positions & alerts panel ---------- */
 .tg-positions {
@@ -1355,6 +1472,8 @@ body {
     grid-template-columns: 1fr;
   }
   .tg-strategy-grid { grid-template-columns: 1fr 1fr; }
+  .tg-recon-overview { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tg-recon-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 900px) {
@@ -1381,6 +1500,9 @@ body {
   .tg-macro-grid { grid-template-columns: 1fr; }
   .tg-strategy-grid { grid-template-columns: 1fr; }
   .tg-strategy-head, .tg-quotes-head { align-items: stretch; flex-direction: column; }
+  .tg-recon-head, .tg-recon-foot { align-items: stretch; flex-direction: column; }
+  .tg-recon-actions { justify-content: space-between; }
+  .tg-recon-overview, .tg-recon-grid { grid-template-columns: 1fr; }
   .tg-connector-advanced-fields { grid-template-columns: 1fr; }
   .tg-alert-pager { flex-direction: column; align-items: flex-start; }
   .tg-ledger-tools { align-items: stretch; }

@@ -1,4 +1,5 @@
 import type { HealthResponse, PriceTick, ScanResult } from '../api/types'
+import { checklistStatus } from '../lib/decisionMap'
 
 function toneClass(value: number) {
   if (value > 0) return 'tg-green'
@@ -157,12 +158,16 @@ export default function MacroPulse({
         <strong>Checklist pulse</strong>
         {plan?.checklist?.length ? (
           <ul className="tg-macro-list">
-            {plan.checklist.slice(0, 4).map((item, i) => (
-              <li key={`${item.stage}-${item.name}-${i}`}>
-                <span className={item.passed ? 'tg-green' : 'tg-red'}>{item.passed ? '✓' : '✗'}</span>
-                <span>{item.name}</span>
-              </li>
-            ))}
+            {plan.checklist.slice(0, 4).map((item, i) => {
+              const status = checklistStatus(item)
+              const icon = status === 'passed' ? '✓' : status === 'failed' ? '✗' : status === 'pending' ? '○' : 'i'
+              return (
+                <li key={`${item.stage}-${item.name}-${i}`}>
+                  <span className={`tg-check-state tg-check-state--${status}`}>{icon}</span>
+                  <span>{item.name}</span>
+                </li>
+              )
+            })}
           </ul>
         ) : (
           <p>No active checklist yet.</p>

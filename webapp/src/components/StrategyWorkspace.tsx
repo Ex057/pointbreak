@@ -1,4 +1,5 @@
 import type { AiAnalysisResponse, ScanResult } from '../api/types'
+import { checklistStatus } from '../lib/decisionMap'
 
 function fmt(value?: number | null) {
   return value == null ? '—' : value.toFixed(2)
@@ -17,8 +18,9 @@ export default function StrategyWorkspace({
 }) {
   const plan = data.verdict.plan
   const deep = analysis?.analysis
-  const failed = plan?.checklist.filter(item => !item.passed) ?? []
-  const passed = plan?.checklist.filter(item => item.passed) ?? []
+  const required = plan?.checklist.filter(item => item.required !== false) ?? []
+  const blocking = required.filter(item => ['pending', 'failed'].includes(checklistStatus(item)))
+  const passed = required.filter(item => checklistStatus(item) === 'passed')
   const outlook = plan?.side === 'long'
     ? 'Potential buy setup'
     : plan?.side === 'short'
@@ -53,15 +55,19 @@ export default function StrategyWorkspace({
 
         <article className="tg-analysis-card">
           <span className="tg-eyebrow">Decision gates</span>
-          <h3>{passed.length} passed · {failed.length} still blocking</h3>
+          <h3>{passed.length} passed · {blocking.length} still blocking</h3>
           {(plan?.checklist ?? []).length ? (
             <ul className="tg-analysis-list">
-              {plan!.checklist.map((item, index) => (
-                <li key={`${item.stage}-${index}`} className={item.passed ? 'is-pass' : 'is-block'}>
-                  <strong>{item.passed ? '✓' : '○'} {item.name}</strong>
-                  <span>{item.detail}</span>
-                </li>
-              ))}
+              {plan!.checklist.map((item, index) => {
+                const status = checklistStatus(item)
+                const icon = status === 'passed' ? '✓' : status === 'failed' ? '✗' : status === 'pending' ? '○' : 'i'
+                return (
+                  <li key={`${item.stage}-${index}`} className={`is-${status}`}>
+                    <strong>{icon} {item.name}</strong>
+                    <span>{item.detail}</span>
+                  </li>
+                )
+              })}
             </ul>
           ) : <p>No candidate has reached the gate pipeline yet.</p>}
         </article>

@@ -12,6 +12,7 @@ import type {
   Pagination,
   PriceTick,
   QuotesResponse,
+  ReconnaissanceResponse,
   Recommendation,
   ScanResult,
   SettingsResponse,
@@ -52,6 +53,14 @@ export async function fetchPrice(pair: string, tf?: string) {
 
 export async function fetchQuotes(tf?: string) {
   const { data } = await api.get<QuotesResponse>('/quotes', { params: { tf } })
+  return data
+}
+
+export async function fetchReconnaissance(pair: string, forceRefresh = false, options?: RequestOptions) {
+  const { data } = await api.get<ReconnaissanceResponse>('/reconnaissance', {
+    params: { pair, force_refresh: forceRefresh || undefined },
+    signal: options?.signal,
+  })
   return data
 }
 

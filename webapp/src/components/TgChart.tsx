@@ -8,7 +8,21 @@ import {
   type ISeriesApi,
   type UTCTimestamp,
 } from 'lightweight-charts'
-import type { AlertRow, ClosedTradeRow, LayerKey, ScanResult, Zone } from '../api/types'
+import type {
+  AlertRow,
+  ClosedTradeRow,
+  LayerKey,
+  ReconnaissanceLiquidityLevel,
+  ScanResult,
+  Story,
+  Zone,
+} from '../api/types'
+import {
+  alertDecisionEvents,
+  inferDecisionEvents,
+  selectLiquidity,
+  type LiquidityView,
+} from '../lib/decisionMap'
 
 // The whole app displays East Africa Time (UTC+3), matching the closed-ledger and
 // end-of-day panels. lightweight-charts renders times in UTC by default, so the
@@ -55,6 +69,10 @@ interface Props {
   srFocus: boolean
   historyTrade: ClosedTradeRow | null
   liveTrades: AlertRow[]
+  focusedAlert: AlertRow | null
+  story: Story | null
+  liquidityLevels: ReconnaissanceLiquidityLevel[]
+  liquidityView: LiquidityView
   layers: Record<LayerKey, boolean>
   priorityFilters: {
     sr: 'all' | 'high' | 'medium' | 'low'
@@ -163,6 +181,10 @@ export default function TgChart({
   srFocus,
   historyTrade,
   liveTrades,
+  focusedAlert,
+  story,
+  liquidityLevels,
+  liquidityView,
   layers,
   priorityFilters,
   checkedPatterns,
@@ -357,6 +379,50 @@ export default function TgChart({
           //  - unfilled -> box runs ahead to the right edge (expected fill zone)
           fromTime: z.start_time ?? z.time,
           toTime: z.filled ? z.fill_time ?? lastCandleTime : undefined,
+        })
+      })
+    }
+
+    if (layers.decision_map && !srFocus) {
+      const confirmation = story?.beats.find(
+        beat => (beat.kind === 'choch' || beat.kind === 'confirmation') && beat.level != null,
+      )
+      if (confirmation?.level != null) {
+        const completed = confirmation.status === 'done'
+        bands.push({
+          top: confirmation.level,
+          bottom: confirmation.level,
+          fill: 'transparent',
+          border: completed ? 'rgba(5,150,105,.9)' : 'rgba(217,119,6,.9)',
+          label: `${completed ? '✓ confirmed' : 'confirm close'} · ${confirmation.timeframe ?? data.timeframe}`,
+          labelColor: completed ? '#047857' : '#b45309',
+          borderStyle: `1.5px dashed ${completed ? 'rgba(5,150,105,.9)' : 'rgba(217,119,6,.9)'}`,
+        })
+      }
+      if (story?.invalidation?.level != null) {
+        bands.push({
+          top: story.invalidation.level,
+          bottom: story.invalidation.level,
+          fill: 'transparent',
+          border: 'rgba(220,38,38,.88)',
+          label: story.invalidation.hit ? 'thesis invalidated' : 'thesis invalidation',
+          labelColor: '#b91c1c',
+          borderStyle: '1.5px dashed rgba(220,38,38,.88)',
+        })
+      }
+    }
+
+    if (!srFocus) {
+      selectLiquidity(liquidityLevels, data.price, liquidityView).forEach(level => {
+        const weekly = level.period === 'week'
+        bands.push({
+          top: level.price,
+          bottom: level.price,
+          fill: 'transparent',
+          border: weekly ? 'rgba(79,70,229,.72)' : 'rgba(8,145,178,.72)',
+          label: level.id,
+          labelColor: weekly ? '#4338ca' : '#0e7490',
+          borderStyle: `1px ${weekly ? 'dashed' : 'dotted'} ${weekly ? 'rgba(79,70,229,.72)' : 'rgba(8,145,178,.72)'}`,
         })
       })
     }
@@ -571,6 +637,41 @@ export default function TgChart({
         })
       })
     })
+    if (layers.decision_map && !srFocus) {
+      const firstTime = data.candles[0]?.time ?? null
+      const persisted = alertDecisionEvents(focusedAlert, firstTime)
+      const decisionEvents = persisted.length
+        ? persisted
+        : inferDecisionEvents(data.candles, story, data.verdict.plan)
+      const candleTimes = data.candles.map(candle => candle.time)
+      const snapTime = (epoch: number) => {
+        let snapped = candleTimes[0] ?? epoch
+        for (const time of candleTimes) {
+          if (time > epoch) break
+          snapped = time
+        }
+        return snapped
+      }
+      const side = data.verdict.plan?.side
+      decisionEvents.forEach(event => {
+        const inferred = event.source === 'candles' ? ' (chart)' : ''
+        markers.push({
+          time: snapTime(event.time) as UTCTimestamp,
+          position: event.kind === 'sweep'
+            ? (side === 'long' ? 'belowBar' : 'aboveBar')
+            : event.kind === 'reclaim'
+              ? (side === 'short' ? 'aboveBar' : 'belowBar')
+              : 'inBar',
+          color: event.kind === 'sweep' ? '#d97706' : event.kind === 'reclaim' ? '#059669' : '#64748b',
+          shape: event.kind === 'sweep'
+            ? (side === 'long' ? 'arrowDown' : 'arrowUp')
+            : event.kind === 'reclaim'
+              ? (side === 'short' ? 'arrowDown' : 'arrowUp')
+              : 'circle',
+          text: `${event.kind === 'reclaim' ? 'reclaim / fill' : event.kind}${inferred}`,
+        })
+      })
+    }
     markers.sort((a, b) => (a.time as number) - (b.time as number))
     candles.setMarkers(markers)
 
@@ -580,7 +681,7 @@ export default function TgChart({
       chart.timeScale().fitContent()
     }
     requestAnimationFrame(drawOverlay)
-  }, [data, futureView, srFocus, historyTrade, liveTrades, layers, priorityFilters, checkedPatterns, showPending, checkedChartPatterns, showFormingCharts])
+  }, [data, futureView, srFocus, historyTrade, liveTrades, focusedAlert, story, liquidityLevels, liquidityView, layers, priorityFilters, checkedPatterns, showPending, checkedChartPatterns, showFormingCharts])
 
   useEffect(() => {
     const chart = chartRef.current

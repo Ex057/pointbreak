@@ -130,9 +130,18 @@ def build_trade_plan(candles, analysis, account_balance, risk_pct=1.0,
                      counter_trend_ok=False):
     checklist, notes = [], []
 
-    def check(stage, name, passed, detail):
+    def check(stage, name, passed, detail, *, required=True, status=None):
+        """Record both the legacy boolean and the gate's real UI semantics.
+
+        `passed` is retained because journal snapshots and older clients contain
+        it.  `status`/`required` stop advisory evidence (notably FVG overlap)
+        from being presented as either a green success or a red blocker.
+        """
+        if status is None:
+            status = "passed" if passed else ("failed" if required else "informational")
         checklist.append({"stage": stage, "name": name,
-                          "passed": bool(passed), "detail": detail})
+                          "passed": bool(passed), "status": status,
+                          "required": bool(required), "detail": detail})
         return passed
 
     price = float(candles["close"].iloc[-1])
@@ -153,9 +162,12 @@ def build_trade_plan(candles, analysis, account_balance, risk_pct=1.0,
     opposing = "DOWNTREND" if side == "long" else "UPTREND"
 
     s_ok = structure == want or (structure in ("RANGE", "CONSOLIDATION", "UNKNOWN"))
+    structure_overridden = structure == opposing and counter_trend_ok
     check("conditions", "Market structure",
           s_ok, f"{structure} " + ("(HH/HL)" if structure == "UPTREND"
-                                   else "(LH/LL)" if structure == "DOWNTREND" else ""))
+                                   else "(LH/LL)" if structure == "DOWNTREND" else ""),
+          required=not structure_overridden,
+          status="informational" if structure_overridden else None)
     counter_trend = False
     if structure == opposing:
         # A counter-trend setup is only allowed when counter_trend_ok is enabled
@@ -174,7 +186,10 @@ def build_trade_plan(candles, analysis, account_balance, risk_pct=1.0,
     bias = (analysis.get("bias") or "neutral").lower()
     b_ok = (bias == BULL and side == "long") or (bias == BEAR and side == "short") \
         or bias == "neutral"
-    check("conditions", "MA bias", b_ok, f"bias {bias}")
+    bias_overridden = not b_ok and counter_trend_ok
+    check("conditions", "MA bias", b_ok, f"bias {bias}",
+          required=not bias_overridden,
+          status="informational" if bias_overridden else None)
     if not b_ok:
         if not counter_trend_ok:
             return _plan(DISCARDED, side, checklist,
@@ -188,13 +203,14 @@ def build_trade_plan(candles, analysis, account_balance, risk_pct=1.0,
     z_ok = conf >= 2
     check("conditions", "Zone quality", z_ok,
           f'{entry_cand.get("source", "zone")} · confluence x{conf}'
-          + (" · fresh" if fresh else ""))
+          + (" · fresh" if fresh else ""), required=False)
     if not z_ok:
         notes.append("weak zone (confluence x1) — treat as low priority")
 
     fvg_conf = _fvg_confluence(analysis.get("fvgs", []), zmin, zmax, side)
-    check("conditions", "FVG confluence", True,
-          "unfilled FVG overlaps zone" if fvg_conf else "no FVG at zone (informational)")
+    check("conditions", "FVG confluence", fvg_conf,
+          "unfilled FVG overlaps zone" if fvg_conf else "no FVG at zone (informational)",
+          required=False)
 
     # =====================================================================
     # GATE 2 — ENTRY TRIGGER  (confirmed pattern OR micro-BOS OR sweep+reclaim)
@@ -241,7 +257,8 @@ def build_trade_plan(candles, analysis, account_balance, risk_pct=1.0,
     if counter_trend and not (trig_pat or soup):
         # counter-trend needs an actual reversal signal, not just a micro-BOS
         notes.append("counter-trend: only a confirmed reversal pattern or sweep+reclaim qualifies")
-    check("trigger", "Confirmation", trig_ok, detail)
+    check("trigger", "Confirmation", trig_ok, detail,
+          status="passed" if trig_ok else "pending")
     if not trig_ok:
         return _plan(WAITING, side, checklist,
                      reason="conditions aligned — waiting for a trigger at the zone",

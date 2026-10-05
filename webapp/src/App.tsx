@@ -2,26 +2,32 @@ import axios from 'axios'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   fetchAiAnalysis,
+  fetchAlerts,
   fetchHealth,
   fetchPrice,
   fetchQuotes,
+  fetchReconnaissance,
   fetchVerdict,
   updateSettings,
 } from './api/client'
 import type {
+  AlertRow,
   AiAnalysisResponse,
   HealthResponse,
   LayerKey,
   MarketQuote,
   PairOption,
   PriceTick,
+  ReconnaissanceResponse,
   ScanResult,
 } from './api/types'
 import { advanceStory } from './lib/story'
+import { selectFocusedAlert, type LiquidityView } from './lib/decisionMap'
 import Clippy from './components/Clippy'
 import MacroPulse from './components/MacroPulse'
 import PatternChecklist from './components/PatternChecklist'
 import QuoteBoard from './components/QuoteBoard'
+import Reconnaissance from './components/Reconnaissance'
 import StrategyWorkspace from './components/StrategyWorkspace'
 import StructureBadge from './components/StructureBadge'
 import TgChart from './components/TgChart'
@@ -33,6 +39,7 @@ const LAYERS: { key: LayerKey; label: string }[] = [
   { key: 'sr', label: 'S/R lines' },
   { key: 'supply_demand', label: 'Demand & supply' },
   { key: 'fvg', label: 'Fair value gaps' },
+  { key: 'decision_map', label: 'Decision map' },
   { key: 'ema9', label: 'EMA 9' },
   { key: 'ema21', label: 'EMA 21' },
   { key: 'ema50', label: 'EMA 50' },
@@ -82,6 +89,7 @@ export default function App() {
     sr: true,
     supply_demand: true,
     fvg: true,
+    decision_map: true,
     ema9: false,
     ema21: true,
     ema50: true,
@@ -108,6 +116,11 @@ export default function App() {
   const [notice, setNotice] = useState<string | null>(null)
   const [aiAnalysis, setAiAnalysis] = useState<AiAnalysisResponse | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
+  const [reconnaissance, setReconnaissance] = useState<ReconnaissanceResponse | null>(null)
+  const [reconLoading, setReconLoading] = useState(false)
+  const [reconError, setReconError] = useState<string | null>(null)
+  const [alerts, setAlerts] = useState<AlertRow[]>([])
+  const [liquidityView, setLiquidityView] = useState<LiquidityView>('nearby')
   const showExecutionPathHint =
     futureView !== 'projected' &&
     data?.verdict.plan?.status !== 'ENTER_READY'
@@ -181,6 +194,22 @@ export default function App() {
     }
   }, [pair, tf, traderMode, aiProvider])
 
+  const loadReconnaissance = useCallback(async (forceRefresh = false, signal?: AbortSignal) => {
+    if (!pair) return null
+    setReconLoading(true)
+    setReconError(null)
+    try {
+      const result = await fetchReconnaissance(pair, forceRefresh, { signal })
+      if (!signal?.aborted) setReconnaissance(result)
+      return result
+    } catch (e) {
+      if (!signal?.aborted) setReconError(apiErrorMessage(e))
+      return null
+    } finally {
+      if (!signal?.aborted) setReconLoading(false)
+    }
+  }, [pair])
+
   useEffect(() => {
     if (!pair || !tf) return
     void load('pair_change')
@@ -193,6 +222,53 @@ export default function App() {
     }
     void loadAiAnalysis(false)
   }, [pair, tf, traderMode, aiProvider, data?.generated_at, loadAiAnalysis])
+
+  useEffect(() => {
+    if (!pair) return
+    let cancelled = false
+    let timer: number | null = null
+    const controller = new AbortController()
+    setReconnaissance(null)
+    setReconError(null)
+
+    const runAndSchedule = async () => {
+      const result = await loadReconnaissance(false, controller.signal)
+      if (cancelled) return
+      const fallback = Math.floor(Date.now() / 1000) + 60
+      const next = result?.next_refresh_at ?? fallback
+      const delay = Math.max(1000, (next - Date.now() / 1000) * 1000)
+      timer = window.setTimeout(() => void runAndSchedule(), delay)
+    }
+
+    void runAndSchedule()
+    return () => {
+      cancelled = true
+      controller.abort()
+      if (timer != null) window.clearTimeout(timer)
+    }
+  }, [pair, loadReconnaissance])
+
+  useEffect(() => {
+    if (!pair) return
+    const controller = new AbortController()
+    let cancelled = false
+    const refresh = async () => {
+      try {
+        const result = await fetchAlerts(pair, 1, 20, { signal: controller.signal })
+        if (!cancelled) setAlerts(result.alerts)
+      } catch {
+        // Alert history is an enhancement; candle inference remains available.
+      }
+    }
+    setAlerts([])
+    void refresh()
+    const id = window.setInterval(() => void refresh(), 5000)
+    return () => {
+      cancelled = true
+      controller.abort()
+      window.clearInterval(id)
+    }
+  }, [pair])
 
   useEffect(() => {
     if (!data?.rescan || !pair || !tf) return
@@ -390,15 +466,25 @@ export default function App() {
     livePrice?.ohlc ??
     (data?.candles?.length ? data.candles[data.candles.length - 1] : null)
 
+  const focusedAlert = useMemo(
+    () => selectFocusedAlert(
+      alerts,
+      data?.verdict.plan ?? null,
+      tf,
+      data?.candles?.[0]?.time ?? null,
+    ),
+    [alerts, data?.verdict.plan, data?.candles, tf],
+  )
+
   // Ticked forward off the same price the header shows, so the assistant and
   // the verdict card can never disagree about which beat is live.
   const liveStory = useMemo(
     () =>
       advanceStory(data?.verdict.story, {
         price: shownPrice,
-        alertState: null,
+        alertState: focusedAlert?.state ?? null,
       }),
-    [data?.verdict.story, shownPrice],
+    [data?.verdict.story, shownPrice, focusedAlert?.state],
   )
 
   return (
@@ -561,6 +647,14 @@ export default function App() {
             {l.label}
           </button>
         ))}
+        <label className="tg-filter">
+          <span>Liquidity</span>
+          <select value={liquidityView} onChange={e => setLiquidityView(e.target.value as LiquidityView)}>
+            <option value="nearby">nearby</option>
+            <option value="all">all</option>
+            <option value="off">off</option>
+          </select>
+        </label>
         {([
           ['sr', 'S/R'],
           ['supply_demand', 'D/S'],
@@ -615,7 +709,11 @@ export default function App() {
                 futureView={futureView}
                 srFocus={srFocus}
                 historyTrade={null}
-                liveTrades={[]}
+                liveTrades={focusedAlert && ['WATCHING', 'TOUCHED', 'SWEPT', 'FILLED'].includes(focusedAlert.state) ? [focusedAlert] : []}
+                focusedAlert={focusedAlert}
+                story={liveStory}
+                liquidityLevels={reconnaissance?.liquidity?.levels ?? []}
+                liquidityView={liquidityView}
                 layers={layers}
                 priorityFilters={priorityFilters}
                 checkedPatterns={checkedPatterns}
@@ -653,7 +751,7 @@ export default function App() {
                     rescan={data.rescan}
                     compact
                     livePrice={shownPrice}
-                    alertState={null}
+                    alertState={focusedAlert?.state ?? null}
                   />
                 </div>
               ) : sideTab === 'patterns' ? (
@@ -684,6 +782,12 @@ export default function App() {
               )}
             </div>
           </div>
+          <Reconnaissance
+            report={reconnaissance}
+            loading={reconLoading}
+            error={reconError}
+            onRefresh={() => void loadReconnaissance(true)}
+          />
           <StrategyWorkspace
             data={data}
             analysis={aiAnalysis}

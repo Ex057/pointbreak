@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { AiAnalysisResponse, AlertRow, ClosedTradeRow, EodReviewResponse, HistoryScanResult, JournalRow, MonitorStatus, Pagination, Recommendation, RescanMeta, StatsResponse } from '../api/types'
+import type { AiAnalysisResponse, AlertRow, ChecklistItem, ClosedTradeRow, EodReviewResponse, HistoryScanResult, JournalRow, MonitorStatus, Pagination, Recommendation, RescanMeta, StatsResponse } from '../api/types'
 import { applyRecommendation, dismissRecommendation, fetchEodReview, fetchOverrides, fetchSettings, resetOverrides, runEodReview, scanHistory, updateSettings } from '../api/client'
 
 const LIVE = new Set(['WATCHING', 'TOUCHED', 'SWEPT', 'FILLED'])
@@ -163,7 +163,7 @@ export default function PositionsPanel({
     target: number | null
     target_basis?: string | null
     notes?: string[]
-    checklist?: { stage: string; name: string; passed: boolean; detail: string }[]
+    checklist?: ChecklistItem[]
     generated_at?: number
     rescan?: RescanMeta
     bias_tf?: string

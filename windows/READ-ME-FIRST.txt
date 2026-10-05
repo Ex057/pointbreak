@@ -1,0 +1,21 @@
+TradeGuard - Windows - START HERE
+=================================
+
+1) Install these two (once), if you don't have them:
+     - Python 3.12  ->  https://www.python.org/downloads/
+       IMPORTANT: on the first installer screen, TICK "Add python.exe to PATH".
+     - Node.js 20+ (LTS)  ->  https://nodejs.org   (just click through with defaults)
+
+2) Double-click:   START-TRADEGUARD.bat
+     - The first run installs everything (a few minutes) and then opens the app
+       in your browser at  http://localhost:5173
+     - Later runs just start it.
+
+3) To stop:  close the two TradeGuard windows, or double-click  STOP-TRADEGUARD.bat
+
+Do NOT use PowerShell, and do NOT run "start.sh" - that is for Mac/Linux only.
+
+If setup ever stops with an error, send us the file  setup-log.txt  (created in
+this folder) - it tells us exactly what happened.
+
+The full guide (data sources, troubleshooting) is in  README.md

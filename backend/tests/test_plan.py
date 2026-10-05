@@ -110,6 +110,18 @@ def test_warning_pattern_at_zone_does_not_trigger_gate_two():
     assert plan["status"] != ENTER_READY
     assert plan["status"] == "WAITING"
     assert "not a valid entry trigger" in plan["checklist"][4]["detail"]
+    fvg = next(item for item in plan["checklist"] if item["name"] == "FVG confluence")
+    confirmation = next(item for item in plan["checklist"] if item["name"] == "Confirmation")
+    assert fvg == {
+        "stage": "conditions",
+        "name": "FVG confluence",
+        "passed": False,
+        "status": "informational",
+        "required": False,
+        "detail": "no FVG at zone (informational)",
+    }
+    assert confirmation["status"] == "pending"
+    assert confirmation["required"] is True
 
 
 def _ltf_with_pending_lower_high():

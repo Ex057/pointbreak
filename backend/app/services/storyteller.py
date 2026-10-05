@@ -213,7 +213,12 @@ def _facts(scan_result: dict, trade_plan: dict | None, entry: dict | None,
     )
     # Which gate killed it — "Market structure", "MA bias", "R:R filter", …
     veto_gate = next(
-        (row.get("name") for row in plan.get("checklist", []) if not row.get("passed")),
+        (
+            row.get("name")
+            for row in plan.get("checklist", [])
+            if row.get("required", True)
+            and row.get("status", "passed" if row.get("passed") else "failed") == "failed"
+        ),
         None,
     )
 

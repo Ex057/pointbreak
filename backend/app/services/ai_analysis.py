@@ -174,7 +174,11 @@ def _builtin(pair: str, verdict_state: str, trade_plan: dict | None, reasons: li
     target_basis = plan.get("target_basis")
     notes = [n.rstrip(".") for n in plan.get("notes", [])[:2]]
     checklist = plan.get("checklist", [])
-    waiting_trigger = next((item.get("detail") for item in checklist if not item.get("passed")), None)
+    waiting_trigger = next((
+        item.get("detail") for item in checklist
+        if item.get("required", True)
+        and item.get("status", "passed" if item.get("passed") else "failed") in {"pending", "failed"}
+    ), None)
     macro_sentiment = (((macro or {}).get("sentiment") or {}).get("label") or "neutral").lower()
 
     if plan.get("status") == "ENTER_READY":
@@ -443,7 +447,12 @@ def _what_is_missing(plan: dict) -> list[str]:
     status = plan.get("status")
     checklist = plan.get("checklist") or []
     if status == "WAITING":
-        missing = [item.get("detail") for item in checklist if not item.get("passed") and item.get("detail")]
+        missing = [
+            item.get("detail") for item in checklist
+            if item.get("required", True)
+            and item.get("status", "passed" if item.get("passed") else "failed") in {"pending", "failed"}
+            and item.get("detail")
+        ]
         return [str(item) for item in missing[:3]]
     if status == "DISCARDED":
         reason = plan.get("reason")

@@ -30,7 +30,7 @@ from .services.markets import (
     prepare_quote_feed,
 )
 from .services.monitor import monitor
-from .services import ai_analysis, execution, learning, topdown, verdict as verdict_service
+from .services import ai_analysis, execution, learning, reconnaissance, topdown, verdict as verdict_service
 from .services.scan import scan as run_scan
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -228,6 +228,19 @@ def verdict_endpoint(pair: str, tf: str, min_rr: float = Query(MIN_RR, ge=1.0, l
         "feed": feed_snapshot(market, tf, df),
         "verdict": verdict_service.build(result, min_rr=min_rr, topdown_context=context, ai_provider=settings.get("ai_provider")),
     }
+
+
+# ---------------------------------------------------------- reconnaissance
+@app.get("/reconnaissance")
+def reconnaissance_report(pair: str = Query(...), force_refresh: bool = Query(False)):
+    """Advisory multi-timeframe structure map for the selected market.
+
+    This surface never changes the deterministic verdict or execution path.
+    Individual timeframe failures are represented in the response so a warming
+    feed can still produce a useful partial report.
+    """
+    market = _pair_entry(pair)
+    return reconnaissance.build(market, force_refresh=force_refresh)
 
 
 # ---------------------------------------------------------------- live price (tick)

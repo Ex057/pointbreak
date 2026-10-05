@@ -4,6 +4,7 @@ export type LayerKey =
   | 'sr'
   | 'supply_demand'
   | 'fvg'
+  | 'decision_map'
   | 'ema9'
   | 'ema21'
   | 'ema50'
@@ -77,6 +78,79 @@ export interface HealthResponse {
   }
   pairs: PairOption[]
   timeframes: string[]
+}
+
+export interface ReconnaissanceLevel {
+  price: number
+  type: string
+  priority?: 'high' | 'medium' | 'low' | null
+  distance_pct: number
+}
+
+export interface ReconnaissanceLiquidityLevel {
+  id: 'PDH' | 'PDL' | 'PWH' | 'PWL'
+  label: string
+  price: number
+  period: 'day' | 'week'
+  side: 'high' | 'low'
+  source_epoch: number
+}
+
+export interface ReconnaissanceTimeframe {
+  timeframe: '1W' | '4H' | '1H' | '30m' | '15m'
+  available: boolean
+  bars: number
+  sample_confidence: number
+  last_complete_epoch: number | null
+  price: number | null
+  structure: string
+  structure_confidence: number
+  reason: string
+  bias: string
+  direction_score: number
+  volatility: {
+    atr_pct: number | null
+    percentile: number | null
+    regime: 'low' | 'normal' | 'high' | 'unknown'
+  }
+  levels: {
+    support: ReconnaissanceLevel | null
+    resistance: ReconnaissanceLevel | null
+  }
+  candidate: {
+    side: string | null
+    source: string | null
+    entry: number | null
+    rr: number | null
+  } | null
+  error: string | null
+}
+
+export interface ReconnaissanceResponse {
+  pair: string
+  pair_display: string
+  status: 'ready' | 'partial' | 'unavailable'
+  generated_at: number
+  next_refresh_at: number
+  window_days: number
+  cached: boolean
+  summary: {
+    stance: 'bullish_alignment' | 'bullish_lean' | 'mixed' | 'bearish_lean' | 'bearish_alignment' | 'unavailable'
+    score: number
+    confidence: number
+    headline: string
+    change_pct_30d: number | null
+    high_30d: number | null
+    low_30d: number | null
+    range_position: number | null
+    volatility: 'low' | 'normal' | 'high' | 'unknown'
+  }
+  liquidity: {
+    levels: ReconnaissanceLiquidityLevel[]
+  }
+  timeframes: ReconnaissanceTimeframe[]
+  conflicts: string[]
+  warnings: string[]
 }
 
 export interface Pattern {
@@ -243,6 +317,16 @@ export interface QuotesResponse {
 }
 
 export type StoryBeatStatus = 'done' | 'active' | 'pending' | 'failed'
+export type ChecklistStatus = 'passed' | 'pending' | 'failed' | 'informational'
+
+export interface ChecklistItem {
+  stage: string
+  name: string
+  passed: boolean
+  detail: string
+  status?: ChecklistStatus
+  required?: boolean
+}
 export type StoryBeatKind =
   | 'reach_zone'
   | 'sweep'
@@ -325,7 +409,7 @@ export interface Verdict {
     target_pips?: number | null
     notes: string[]
     alternatives: { price: number; basis: string; rr: number }[]
-    checklist: { stage: string; name: string; passed: boolean; detail: string }[]
+    checklist: ChecklistItem[]
     confluence?: number
     score?: number
     bias_tf?: string
@@ -675,7 +759,7 @@ export interface JournalRow {
   plan_json: {
     status?: string | null
     instruction?: string | null
-    checklist?: { stage: string; name: string; passed: boolean; detail: string }[]
+    checklist?: ChecklistItem[]
     notes?: string[]
   }
   created_at: number

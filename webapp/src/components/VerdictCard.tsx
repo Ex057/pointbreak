@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from 'react'
 import type { RescanMeta, Story, StoryBeat, StoryBeatStatus, Verdict } from '../api/types'
 import { advanceStory } from '../lib/story'
+import { checklistStatus } from '../lib/decisionMap'
 
 function fmtDateTime(ts: number) {
   const d = new Date(ts * 1000)
@@ -115,18 +116,22 @@ export default function VerdictCard({
           )}
           {verdict.plan.checklist.length > 0 && (
             <div className="tg-plan-checklist">
-              {verdict.plan.checklist.map((item, i) => (
-                <div
-                  key={`${item.stage}-${item.name}-${i}`}
-                  className={`tg-plan-check ${item.passed ? 'tg-plan-check--pass' : 'tg-plan-check--fail'}`}
-                >
-                  <span className="tg-plan-check-icon">{item.passed ? '✓' : '✗'}</span>
-                  <div>
-                    <strong>{item.name}</strong>
-                    <span>{item.detail}</span>
+              {verdict.plan.checklist.map((item, i) => {
+                const status = checklistStatus(item)
+                const icon = status === 'passed' ? '✓' : status === 'failed' ? '✗' : status === 'pending' ? '○' : 'i'
+                return (
+                  <div
+                    key={`${item.stage}-${item.name}-${i}`}
+                    className={`tg-plan-check tg-plan-check--${status}`}
+                  >
+                    <span className="tg-plan-check-icon">{icon}</span>
+                    <div>
+                      <strong>{item.name}</strong>
+                      <span>{item.detail}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
           {story && <StorySection story={story} compact={compact} />}
