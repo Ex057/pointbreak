@@ -28,6 +28,7 @@ import MacroPulse from './components/MacroPulse'
 import PatternChecklist from './components/PatternChecklist'
 import QuoteBoard from './components/QuoteBoard'
 import Reconnaissance from './components/Reconnaissance'
+import ResearchLab from './components/ResearchLab'
 import StrategyWorkspace from './components/StrategyWorkspace'
 import StructureBadge from './components/StructureBadge'
 import TgChart from './components/TgChart'
@@ -49,6 +50,7 @@ const LAYERS: { key: LayerKey; label: string }[] = [
 type PriorityFilter = 'all' | 'high' | 'medium' | 'low'
 type FutureView = 'projected' | 'execution' | 'both'
 type SideTab = 'verdict' | 'patterns' | 'macro'
+type AppView = 'market' | 'research'
 
 // Backend error code for a live feed that hasn't produced candles yet — a
 // transient cold-connect state we retry through rather than surfacing.
@@ -121,6 +123,7 @@ export default function App() {
   const [reconError, setReconError] = useState<string | null>(null)
   const [alerts, setAlerts] = useState<AlertRow[]>([])
   const [liquidityView, setLiquidityView] = useState<LiquidityView>('nearby')
+  const [appView, setAppView] = useState<AppView>('market')
   const showExecutionPathHint =
     futureView !== 'projected' &&
     data?.verdict.plan?.status !== 'ENTER_READY'
@@ -491,6 +494,10 @@ export default function App() {
     <div className="tg-app">
       <header className="tg-topbar">
         <span className="tg-brand">TradeGuard</span>
+        <div className="tg-view-tabs" aria-label="Application view">
+          <button className={appView === 'market' ? 'is-active' : ''} onClick={() => setAppView('market')}>Market</button>
+          <button className={appView === 'research' ? 'is-active' : ''} onClick={() => setAppView('research')}>Research Lab</button>
+        </div>
         <select value={pair} onChange={e => setPair(e.target.value)} className="tg-select">
           {(health?.pairs ?? []).map(p => (
             <option key={p.id} value={p.id}>
@@ -630,6 +637,9 @@ export default function App() {
         </div>
       )}
 
+      {appView === 'research' ? (
+        <ResearchLab pair={pair} onSelectXau={() => setPair('xauusd')} />
+      ) : <>
       <QuoteBoard
         quotes={quotes}
         selected={pair}
@@ -800,13 +810,14 @@ export default function App() {
       )}
 
       {notice && <div className="tg-trade-msg">{notice}</div>}
+      </>}
 
       <footer className="tg-foot">
         Analysis and education only — not financial advice. TradeGuard guides strategy review
         and does not place or manage trades.
       </footer>
 
-      <Clippy story={liveStory} />
+      {appView === 'market' && <Clippy story={liveStory} />}
     </div>
   )
 }

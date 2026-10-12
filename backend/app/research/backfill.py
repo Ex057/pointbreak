@@ -54,13 +54,24 @@ class BackfillResult:
                 + (f"; {len(self.errors)} error(s)" if self.errors else ""))
 
 
-def _distinct_days(pair: str, timeframe: str) -> int:
+def _distinct_days(pair: str, timeframe: str, source: str | None = None) -> int:
+    if source:
+        rows = repo.read_research_candles(pair, timeframe, source)
+        return len({time.strftime("%Y-%m-%d", time.gmtime(row["epoch"])) for row in rows})
+    grid = TF_SECONDS.get(timeframe)
     with repo.cursor() as con:
-        row = con.execute(
-            "SELECT COUNT(DISTINCT date(epoch,'unixepoch')) AS d FROM candles "
-            "WHERE pair=? AND timeframe=?",
-            (pair, timeframe),
-        ).fetchone()
+        if grid:
+            row = con.execute(
+                "SELECT COUNT(DISTINCT date(epoch,'unixepoch')) AS d FROM candles "
+                "WHERE pair=? AND timeframe=? AND epoch % ? = 0",
+                (pair, timeframe, grid),
+            ).fetchone()
+        else:
+            row = con.execute(
+                "SELECT COUNT(DISTINCT date(epoch,'unixepoch')) AS d FROM candles "
+                "WHERE pair=? AND timeframe=?",
+                (pair, timeframe),
+            ).fetchone()
     return int(row["d"] or 0)
 
 
@@ -92,8 +103,9 @@ def backfill(
     sleep_between: float = 0.2,
     max_retries: int = 2,
     fetcher=None,
+    source: str = "deriv",
 ) -> BackfillResult:
-    """Page backwards from now, writing every window to the `candles` table.
+    """Page backwards from now, retaining a provider-isolated research series.
 
     Walks backwards rather than forwards so that an interrupted run still leaves
     the most recent — and therefore most useful — history in place.
@@ -104,6 +116,8 @@ def backfill(
     tf_seconds = TF_SECONDS.get(timeframe)
     if tf_seconds is None:
         raise ValueError(f"unsupported timeframe {timeframe!r}")
+    if source not in {"deriv", "yahoo"}:
+        raise ValueError(f"unsupported history source {source!r}")
 
     market = markets.market_by_id(pair)
     if market is None:
@@ -119,9 +133,23 @@ def backfill(
     start_floor = ((end - int(years * 365.25 * 86400)) // tf_seconds) * tf_seconds
     result = BackfillResult(pair=pair, timeframe=timeframe,
                             requested_from=start_floor, requested_to=end,
-                            days_before=_distinct_days(pair, timeframe))
+                            days_before=_distinct_days(pair, timeframe, source))
 
-    fetch = fetcher or _deriv_fetcher(market.code)
+    if fetcher:
+        fetch = fetcher
+    elif source == "deriv":
+        fetch = _deriv_fetcher(market.code)
+    elif market.fallback:
+        if timeframe == "1H":
+            fetch = lambda _code, _granularity, start, end: markets.yahoo.fetch_research_hourly_window(
+                market.fallback, start, end
+            )
+        else:
+            fetch = lambda _code, _granularity, start, end: markets.yahoo.fetch_candles_window(
+                market.fallback, timeframe, start, end
+            )
+    else:
+        raise ValueError(f"{pair!r} has no Yahoo fallback")
     window_span = WINDOW_CANDLES * tf_seconds
     cursor_end = end
     # Two consecutive empty windows means we are past the symbol's history; one
@@ -164,7 +192,7 @@ def backfill(
 
         # Belt and braces: even with aligned windows, refuse to write a bar whose
         # epoch is off the grid. One such row silently overlaps a real one.
-        aligned = [r for r in rows if int(r["epoch"]) % tf_seconds == 0]
+        aligned = [r for r in rows if source == "yahoo" or int(r["epoch"]) % tf_seconds == 0]
         result.misaligned_dropped += len(rows) - len(aligned)
         if not aligned:
             result.empty_windows += 1
@@ -183,7 +211,9 @@ def backfill(
         oldest_seen = oldest if oldest_seen is None else min(oldest_seen, oldest)
 
         result.fetched += len(rows)
-        result.written += repo.upsert_candles(pair, timeframe, rows)
+        result.written += repo.upsert_research_candles(pair, timeframe, source, rows)
+        if source == "deriv":
+            repo.upsert_candles(pair, timeframe, rows, source="deriv")
         # Step to just before the oldest candle we actually received, so a window
         # that returned less than asked for still makes progress.
         cursor_end = min(window_start, oldest - tf_seconds)
@@ -194,7 +224,7 @@ def backfill(
         if sleep_between:
             time.sleep(sleep_between)
 
-    result.days_after = _distinct_days(pair, timeframe)
+    result.days_after = _distinct_days(pair, timeframe, source)
     return result
 
 

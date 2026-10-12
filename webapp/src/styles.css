@@ -747,6 +747,8 @@ body {
   border-radius: 0 0 12px 12px; padding: 40px; text-align: center; color: var(--muted);
 }
 .tg-error { color: #b91c1c; background: #fef2f2; }
+.tg-research-empty { margin-top: 16px; padding: 18px; border: 1px dashed var(--line, #cbd5e1); border-radius: 12px; color: var(--muted, #64748b); }
+.tg-research-empty p { margin: 8px 0 14px; }
 
 .tg-foot { margin-top: 14px; text-align: center; font-size: 11.5px; color: var(--muted); }
 
@@ -1270,6 +1272,86 @@ body {
 }
 .tg-clippy-nav button:disabled { opacity: .4; cursor: default; }
 .tg-clippy-nav span { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Research Lab ----------------------------------------------------------- */
+.tg-view-tabs { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--line); border-radius: 9px; background: var(--card); }
+.tg-view-tabs button { border: 0; border-radius: 6px; padding: 7px 10px; background: transparent; color: var(--muted); cursor: pointer; font: inherit; font-size: 12px; font-weight: 700; }
+.tg-view-tabs button.is-active { background: var(--ink); color: #fff; }
+.tg-research-lab { margin: 18px; padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+.tg-research-head, .tg-research-result-head, .tg-research-run-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.tg-research-head h2, .tg-research-result h3, .tg-research-run-head h3, .tg-research-data-card h3 { margin: 5px 0 7px; }
+.tg-research-head p, .tg-research-run-head p { margin: 0; color: var(--muted); max-width: 760px; }
+.tg-research-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; min-width: 230px; }
+.tg-research-only { color: #7c3aed; background: #f3e8ff; border: 1px solid #e9d5ff; border-radius: 999px; padding: 5px 9px; font-size: 11px; font-weight: 800; }
+.tg-research-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 20px 0; }
+.tg-research-summary > div, .tg-research-metrics > div { padding: 12px; border-radius: 9px; background: var(--bg); border: 1px solid var(--line); }
+.tg-research-summary span, .tg-research-metrics span { display: block; color: var(--muted); font-size: 11px; margin-bottom: 5px; }
+.tg-research-mode-grid, .tg-research-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.tg-research-data-card, .tg-research-result, .tg-research-run-head, .tg-research-history { border: 1px solid var(--line); border-radius: 11px; padding: 15px; background: #fff; }
+.tg-research-frame { display: grid; grid-template-columns: 45px 1fr 1fr auto; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); }
+.tg-research-frame strong { color: var(--ink); }
+.tg-research-frame small { color: #7c3aed; }
+.tg-research-run-head { margin: 18px 0 12px; }
+.tg-research-state { border-radius: 999px; padding: 5px 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.tg-research-state--insufficient_data { background: #fef3c7; color: #92400e; }
+.tg-research-state--inconclusive { background: #e0e7ff; color: #3730a3; }
+.tg-research-state--qualified_for_shadow { background: #dcfce7; color: #166534; }
+.tg-research-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; margin: 12px 0; }
+.tg-research-table-wrap { overflow-x: auto; }
+.tg-research-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.tg-research-table th, .tg-research-table td { text-align: left; padding: 7px; border-bottom: 1px solid var(--line); }
+.tg-research-note { color: var(--muted); font-size: 11px; }
+.tg-research-blockers { margin: 10px 0; padding-left: 18px; color: #92400e; font-size: 12px; }
+.tg-research-importance { margin-top: 12px; }
+.tg-research-importance > div { display: grid; grid-template-columns: 150px 1fr 44px; align-items: center; gap: 8px; margin-top: 6px; font-size: 10px; }
+.tg-research-importance meter { width: 100%; }
+.tg-research-history { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; align-items: center; }
+.tg-research-history button { border: 1px solid var(--line); border-radius: 7px; background: var(--bg); padding: 6px 8px; cursor: pointer; font-size: 10px; }
+.tg-research-history button.is-active { border-color: #7c3aed; color: #6d28d9; }
+.tg-history-acquisition, .tg-price-forecast-panel { margin: 14px 0; }
+.tg-history-acquisition .tg-research-result-head p, .tg-price-forecast-panel .tg-research-result-head p { margin: 0; max-width: 760px; color: var(--muted); font-size: 12px; }
+.tg-history-source-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.tg-history-source { display: grid; gap: 5px; padding: 11px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); font-size: 12px; }
+.tg-history-source.is-selected { border-color: #10b981; box-shadow: inset 3px 0 #10b981; }
+.tg-history-source small { color: var(--muted); }
+.tg-forecast-legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 14px 0 8px; font-size: 11px; color: var(--muted); }
+.tg-forecast-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.tg-forecast-legend i { width: 12px; height: 3px; border-radius: 3px; }
+.tg-forecast-chart { width: 100%; height: 260px; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: #111827; }
+.tg-forecast-chart svg { display: block; width: 100%; height: 100%; }
+.tg-chart-gridline { stroke: #374151; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.tg-forecast-zone-90 { fill: rgba(96, 165, 250, .2); }
+.tg-forecast-zone-50 { fill: rgba(52, 211, 153, .3); }
+.tg-forecast-projection { stroke: #f8fafc; stroke-width: 1.5; stroke-dasharray: 5 4; vector-effect: non-scaling-stroke; }
+.tg-forecast-projection-dot { fill: #fff; stroke: #34d399; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.tg-forecast-next-label { fill: #cbd5e1; font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+.tg-forecast-dates { display: flex; justify-content: space-between; color: var(--muted); font-size: 10px; margin-top: 5px; }
+.tg-forecast-callout { display: grid; grid-template-columns: minmax(180px, .7fr) minmax(0, 1.6fr); gap: 12px; margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: #f8fafc; }
+.tg-forecast-bias { display: flex; flex-direction: column; justify-content: center; gap: 5px; padding: 10px; border-radius: 8px; background: #e2e8f0; color: #334155; }
+.tg-forecast-bias > span, .tg-forecast-levels span { color: var(--muted); font-size: 10px; }
+.tg-forecast-bias strong { font-size: 18px; }
+.tg-forecast-bias p { margin: 0; font-size: 12px; }
+.tg-forecast-bias p i { font-style: normal; padding: 0 4px; opacity: .6; }
+.tg-forecast-bias--buy { background: #dcfce7; color: #166534; }
+.tg-forecast-bias--sell { background: #fee2e2; color: #991b1b; }
+.tg-forecast-bias--neutral { background: #e2e8f0; color: #334155; }
+.tg-forecast-levels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 14px; align-content: center; }
+.tg-forecast-levels > div { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.tg-forecast-levels b { color: var(--ink); font-size: 11px; text-align: right; }
+.tg-zone-key { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 2px; vertical-align: -1px; }
+.tg-zone-key--50 { background: #34d399; }
+.tg-zone-key--90 { background: #60a5fa; }
+.tg-forecast-callout > .tg-research-note { grid-column: 1 / -1; margin: 0; }
+.tg-research-blocker { color: #92400e; font-size: 12px; }
+.tg-research-scope { text-align: center; padding: 60px 22px; }
+@media (max-width: 900px) {
+  .tg-research-head, .tg-research-result-head { flex-direction: column; }
+  .tg-research-actions { align-items: flex-start; }
+  .tg-research-summary, .tg-research-mode-grid, .tg-research-results, .tg-history-source-grid { grid-template-columns: 1fr; }
+  .tg-research-frame { grid-template-columns: 40px 1fr; }
+  .tg-forecast-callout { grid-template-columns: 1fr; }
+  .tg-forecast-callout > .tg-research-note { grid-column: auto; }
+}
 .tg-clippy-snap { margin-left: auto; font-size: 11px !important; color: #4338ca !important; }
 
 .tg-clippy-teaser {

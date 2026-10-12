@@ -29,6 +29,16 @@ def test_health_exposes_pairs_and_timeframes():
     } <= ids
 
 
+def test_research_history_endpoint_reports_provider_coverage():
+    with api() as client:
+        response = client.get("/research/history", params={"pair": "xauusd"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["history"]["timeframe"] == "1H"
+    assert set(body["history"]["sources"]) == {"deriv", "yahoo"}
+    assert "jobs" in body
+
+
 def test_health_uses_fallback_catalog_when_bootstrap_fails(monkeypatch):
     monkeypatch.setattr("app.main.build_catalog", lambda: (_ for _ in ()).throw(RuntimeError("catalog down")))
     with api() as client:
@@ -37,6 +47,32 @@ def test_health_uses_fallback_catalog_when_bootstrap_fails(monkeypatch):
     body = response.json()
     assert body["status"] == "ok"
     assert any(item["id"] == "xauusd" for item in body["pairs"])
+
+
+def test_research_data_status_is_explicitly_research_only(monkeypatch):
+    monkeypatch.setattr(
+        "app.main.research_lab.data_status",
+        lambda pair: {"pair": pair, "research_only": True, "modes": []},
+    )
+    with api() as client:
+        response = client.get("/research/data-status", params={"pair": "xauusd"})
+    assert response.status_code == 200
+    assert response.json() == {"pair": "xauusd", "research_only": True, "modes": []}
+
+
+def test_research_run_request_defaults_to_all_modes(monkeypatch):
+    captured = {}
+
+    def start(pair, modes):
+        captured.update(pair=pair, modes=modes)
+        return {"id": 7, "pair": pair, "status": "queued", "modes": modes}
+
+    monkeypatch.setattr("app.main.research_lab.start_run", start)
+    with api() as client:
+        response = client.post("/research/runs", json={"pair": "xauusd"})
+    assert response.status_code == 202
+    assert captured["pair"] == "xauusd"
+    assert captured["modes"] == ["Scalper", "Day Trader", "Swing Trader", "Position Trader"]
 
 
 def test_monitor_endpoint_degrades_instead_of_500(monkeypatch):

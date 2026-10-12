@@ -32,3 +32,4 @@ build/
 mobile_app/local.properties
 mobile_app/app/build/
 backend/db_backups/
+backend/.research/

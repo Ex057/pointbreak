@@ -727,7 +727,19 @@ def _decode_learning_model(row: dict) -> dict:
 
 
 # ---------------------------------------------------------------- candles
-def upsert_candles(pair: str, timeframe: str, rows: list[dict]) -> int:
+_TF_SECONDS = {
+    "1m": 60, "5m": 300, "15m": 900, "30m": 1800,
+    "1H": 3600, "4H": 14400, "1D": 86400,
+}
+
+
+def upsert_candles(
+    pair: str,
+    timeframe: str,
+    rows: list[dict],
+    *,
+    source: str | None = None,
+) -> int:
     """Persist OHLC candles so history accumulates for the what-if replay.
 
     `rows` are dicts with epoch/open/high/low/close (as produced by the feed's
@@ -737,26 +749,225 @@ def upsert_candles(pair: str, timeframe: str, rows: list[dict]) -> int:
     if not rows:
         return 0
     payload = []
+    grid = _TF_SECONDS.get(timeframe)
     for r in rows:
         epoch = r.get("epoch")
         if epoch is None:
             continue
+        epoch = int(epoch)
+        if grid and epoch % grid != 0:
+            # A streaming OHLC regression once persisted every tick as a candle.
+            # Refuse to grow that contamination; legacy rows remain auditable.
+            continue
+        try:
+            o, h, l, c = (float(r[k]) for k in ("open", "high", "low", "close"))
+        except (KeyError, TypeError, ValueError):
+            continue
+        if h < l or not (l <= o <= h and l <= c <= h):
+            continue
+        row_source = str(r.get("source") or source or "legacy")
         payload.append((
-            pair, timeframe, int(epoch),
-            r.get("open"), r.get("high"), r.get("low"), r.get("close"),
+            pair, timeframe, epoch, o, h, l, c,
+            row_source, now(), "valid",
         ))
     if not payload:
         return 0
     with cursor() as con:
         con.executemany(
-            """INSERT INTO candles (pair, timeframe, epoch, open, high, low, close)
-               VALUES (?,?,?,?,?,?,?)
+            """INSERT INTO candles
+               (pair, timeframe, epoch, open, high, low, close, source, ingested_at, quality_status)
+               VALUES (?,?,?,?,?,?,?,?,?,?)
                ON CONFLICT(pair, timeframe, epoch) DO UPDATE SET
                  open=excluded.open, high=excluded.high,
-                 low=excluded.low, close=excluded.close""",
+                 low=excluded.low, close=excluded.close,
+                 source=excluded.source, ingested_at=excluded.ingested_at,
+                 quality_status=excluded.quality_status
+               WHERE COALESCE(candles.source,'legacy')!='deriv' OR excluded.source='deriv'""",
             payload,
         )
     return len(payload)
+
+
+def upsert_research_candles(pair: str, timeframe: str, source: str, rows: list[dict]) -> int:
+    """Persist a provider-specific research series without cross-source overwrite."""
+    if source not in {"deriv", "yahoo"} or not rows:
+        return 0
+    grid = _TF_SECONDS.get(timeframe)
+    payload = []
+    for row in rows:
+        try:
+            epoch = int(row["epoch"])
+            o, h, l, c = (float(row[key]) for key in ("open", "high", "low", "close"))
+        except (KeyError, TypeError, ValueError):
+            continue
+        # Deriv's candle epoch grid is UTC-aligned. Yahoo's exchange-session
+        # hourly bars can have a stable half-hour offset, so preserve provider
+        # timestamps there rather than silently discarding the entire series.
+        if (source == "deriv" and grid and epoch % grid) or h < l or not (l <= o <= h and l <= c <= h):
+            continue
+        payload.append((pair, timeframe, source, epoch, o, h, l, c, now()))
+    if not payload:
+        return 0
+    with cursor() as con:
+        con.executemany(
+            """INSERT INTO research_candles
+               (pair,timeframe,source,epoch,open,high,low,close,ingested_at)
+               VALUES (?,?,?,?,?,?,?,?,?)
+               ON CONFLICT(pair,timeframe,source,epoch) DO UPDATE SET
+                 open=excluded.open,high=excluded.high,low=excluded.low,
+                 close=excluded.close,ingested_at=excluded.ingested_at""",
+            payload,
+        )
+    return len(payload)
+
+
+def read_research_candles(
+    pair: str, timeframe: str, source: str,
+    start: int | None = None, until: int | None = None,
+) -> list[dict]:
+    clauses = ["pair=?", "timeframe=?", "source=?"]
+    args: list = [pair, timeframe, source]
+    if start is not None:
+        clauses.append("epoch>=?")
+        args.append(int(start))
+    if until is not None:
+        clauses.append("epoch<=?")
+        args.append(int(until))
+    with cursor() as con:
+        rows = con.execute(
+            f"SELECT epoch,open,high,low,close FROM research_candles WHERE {' AND '.join(clauses)} ORDER BY epoch",
+            args,
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def research_candle_status(pair: str, timeframe: str) -> dict[str, dict]:
+    with cursor() as con:
+        rows = con.execute(
+            """SELECT source,COUNT(*) AS rows,MIN(epoch) AS first_epoch,MAX(epoch) AS last_epoch
+               FROM research_candles WHERE pair=? AND timeframe=? GROUP BY source""",
+            (pair, timeframe),
+        ).fetchall()
+    return {row["source"]: dict(row) for row in rows}
+
+
+def create_research_data_job(pair: str, timeframe: str, years: float) -> int:
+    with cursor() as con:
+        row = con.execute(
+            """INSERT INTO research_data_jobs
+               (pair,timeframe,status,years,message,created_at)
+               VALUES (?,?, 'queued', ?, 'Queued for historical data fetch', ?)""",
+            (pair, timeframe, years, now()),
+        )
+        return int(row.lastrowid)
+
+
+def update_research_data_job(job_id: int, **fields) -> None:
+    if not fields:
+        return
+    allowed = {"status", "source", "written", "message", "result_json", "error", "started_at", "completed_at"}
+    if set(fields) - allowed:
+        raise ValueError("unsupported research data job field")
+    values = {
+        key: json.dumps(value) if key == "result_json" and not isinstance(value, str) else value
+        for key, value in fields.items()
+    }
+    with cursor() as con:
+        con.execute(
+            f"UPDATE research_data_jobs SET {', '.join(f'{key}=?' for key in values)} WHERE id=?",
+            (*values.values(), job_id),
+        )
+
+
+def get_research_data_job(job_id: int) -> dict | None:
+    with cursor() as con:
+        row = con.execute("SELECT * FROM research_data_jobs WHERE id=?", (job_id,)).fetchone()
+    if row is None:
+        return None
+    data = dict(row)
+    data["result"] = json.loads(data.pop("result_json") or "{}")
+    return data
+
+
+def active_research_data_job(pair: str) -> dict | None:
+    with cursor() as con:
+        row = con.execute(
+            """SELECT * FROM research_data_jobs WHERE pair=? AND status IN ('queued','running')
+               ORDER BY id DESC LIMIT 1""",
+            (pair,),
+        ).fetchone()
+    if row is None:
+        return None
+    data = dict(row)
+    data["result"] = json.loads(data.pop("result_json") or "{}")
+    return data
+
+
+def list_research_data_jobs(pair: str, limit: int = 20) -> list[dict]:
+    with cursor() as con:
+        rows = con.execute(
+            "SELECT id FROM research_data_jobs WHERE pair=? ORDER BY created_at DESC,id DESC LIMIT ?",
+            (pair, limit),
+        ).fetchall()
+    return [get_research_data_job(int(row["id"])) for row in rows]
+
+
+def create_research_forecast_run(pair: str, timeframe: str, source: str) -> int:
+    with cursor() as con:
+        row = con.execute(
+            """INSERT INTO research_forecast_runs
+               (pair,timeframe,source,status,created_at) VALUES (?,?,?,'queued',?)""",
+            (pair, timeframe, source, now()),
+        )
+        return int(row.lastrowid)
+
+
+def update_research_forecast_run(run_id: int, **fields) -> None:
+    allowed = {"status", "metrics_json", "points_json", "data_json", "error", "completed_at"}
+    if set(fields) - allowed:
+        raise ValueError("unsupported research forecast field")
+    values = {
+        key: json.dumps(value) if key.endswith("_json") and not isinstance(value, str) else value
+        for key, value in fields.items()
+    }
+    if not values:
+        return
+    with cursor() as con:
+        con.execute(
+            f"UPDATE research_forecast_runs SET {', '.join(f'{key}=?' for key in values)} WHERE id=?",
+            (*values.values(), run_id),
+        )
+
+
+def get_research_forecast_run(run_id: int) -> dict | None:
+    with cursor() as con:
+        row = con.execute("SELECT * FROM research_forecast_runs WHERE id=?", (run_id,)).fetchone()
+    if row is None:
+        return None
+    data = dict(row)
+    for key in ("metrics_json", "points_json", "data_json"):
+        decoded = key.removesuffix("_json")
+        data[decoded] = json.loads(data.pop(key) or ("[]" if key == "points_json" else "{}"))
+    return data
+
+
+def list_research_forecast_runs(pair: str, limit: int = 20) -> list[dict]:
+    with cursor() as con:
+        rows = con.execute(
+            "SELECT id FROM research_forecast_runs WHERE pair=? ORDER BY created_at DESC,id DESC LIMIT ?",
+            (pair, limit),
+        ).fetchall()
+    return [get_research_forecast_run(int(row["id"])) for row in rows]
+
+
+def active_research_forecast_run(pair: str) -> dict | None:
+    with cursor() as con:
+        row = con.execute(
+            """SELECT id FROM research_forecast_runs WHERE pair=? AND status IN ('queued','running')
+               ORDER BY id DESC LIMIT 1""",
+            (pair,),
+        ).fetchone()
+    return get_research_forecast_run(int(row["id"])) if row else None
 
 
 def candle_timeframes(pair: str) -> list[str]:
@@ -771,10 +982,17 @@ def candle_timeframes(pair: str) -> list[str]:
 def candle_range(pair: str, timeframe: str) -> tuple[int | None, int | None]:
     """(min_epoch, max_epoch) of recorded candles for pair/timeframe, or (None, None)."""
     with cursor() as con:
-        row = con.execute(
-            "SELECT MIN(epoch), MAX(epoch) FROM candles WHERE pair=? AND timeframe=?",
-            (pair, timeframe),
-        ).fetchone()
+        grid = _TF_SECONDS.get(timeframe)
+        if grid:
+            row = con.execute(
+                "SELECT MIN(epoch), MAX(epoch) FROM candles WHERE pair=? AND timeframe=? AND epoch % ? = 0",
+                (pair, timeframe, grid),
+            ).fetchone()
+        else:
+            row = con.execute(
+                "SELECT MIN(epoch), MAX(epoch) FROM candles WHERE pair=? AND timeframe=?",
+                (pair, timeframe),
+            ).fetchone()
     if row is None or row[0] is None:
         return None, None
     return int(row[0]), int(row[1])
@@ -791,6 +1009,10 @@ def read_candles(pair: str, timeframe: str, start: int | None = None, until: int
     """Read persisted candles in [start, until] ascending by epoch."""
     clauses = ["pair=?", "timeframe=?"]
     args: list = [pair, timeframe]
+    grid = _TF_SECONDS.get(timeframe)
+    if grid:
+        clauses.append("epoch % ? = 0")
+        args.append(grid)
     if start is not None:
         clauses.append("epoch>=?")
         args.append(int(start))
@@ -966,3 +1188,141 @@ def get_param_overrides(scope: str | None = None) -> dict:
         elif scope is not None and r["scope"] == scope:
             scoped_vals[r["param"]] = r["value"]
     return {**global_vals, **scoped_vals}
+
+
+# ---------------------------------------------------------------- research lab
+def create_research_run(pair: str, modes: list[str], config: dict) -> int:
+    with cursor() as con:
+        cur = con.execute(
+            """INSERT INTO research_runs
+               (pair,modes_json,status,config_json,created_at)
+               VALUES (?,?,?,?,?)""",
+            (pair, json.dumps(modes), "queued", json.dumps(config), now()),
+        )
+        return int(cur.lastrowid)
+
+
+def update_research_run(run_id: int, **fields) -> None:
+    if not fields:
+        return
+    encoded = {
+        key: json.dumps(value) if key in {"summary_json"} and not isinstance(value, str) else value
+        for key, value in fields.items()
+    }
+    cols = ", ".join(f"{key}=?" for key in encoded)
+    with cursor() as con:
+        con.execute(f"UPDATE research_runs SET {cols} WHERE id=?", (*encoded.values(), run_id))
+
+
+def replace_research_mode_result(run_id: int, result: dict) -> None:
+    with cursor() as con:
+        con.execute(
+            "DELETE FROM research_predictions WHERE run_id=? AND trader_mode=?",
+            (run_id, result["trader_mode"]),
+        )
+        con.execute(
+            "DELETE FROM research_mode_results WHERE run_id=? AND trader_mode=?",
+            (run_id, result["trader_mode"]),
+        )
+        con.execute(
+            """INSERT INTO research_mode_results
+               (run_id,trader_mode,status,sample_count,independent_days,
+                positive_count,negative_count,censored_count,metrics_json,
+                folds_json,feature_importance_json,blockers_json,artifact_path)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                run_id, result["trader_mode"], result["status"],
+                result.get("sample_count", 0), result.get("independent_days", 0),
+                result.get("positive_count", 0), result.get("negative_count", 0),
+                result.get("censored_count", 0), json.dumps(result.get("metrics") or {}),
+                json.dumps(result.get("folds") or []),
+                json.dumps(result.get("feature_importance") or []),
+                json.dumps(result.get("blockers") or []),
+                result.get("artifact_path"),
+            ),
+        )
+        prediction_rows = [
+            (
+                run_id, result["trader_mode"], int(item["epoch"]), item["day"],
+                int(item["fold"]), int(item["label"]), item["outcome"],
+                item.get("rr"), item.get("risk_distance"), json.dumps(item.get("predictions") or {}),
+            )
+            for item in result.get("predictions", [])
+        ]
+        if prediction_rows:
+            con.executemany(
+                """INSERT INTO research_predictions
+                   (run_id,trader_mode,epoch,day,fold,label,outcome,rr,risk_distance,predictions_json)
+                   VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                prediction_rows,
+            )
+
+
+def _decode_research_run(row: dict) -> dict:
+    row["modes"] = json.loads(row.pop("modes_json") or "[]")
+    row["config"] = json.loads(row.pop("config_json") or "{}")
+    row["summary"] = json.loads(row.pop("summary_json") or "{}")
+    return row
+
+
+def get_research_run(run_id: int) -> dict | None:
+    with cursor() as con:
+        row = con.execute("SELECT * FROM research_runs WHERE id=?", (run_id,)).fetchone()
+        if row is None:
+            return None
+        results = con.execute(
+            "SELECT * FROM research_mode_results WHERE run_id=? ORDER BY id", (run_id,)
+        ).fetchall()
+    decoded = _decode_research_run(dict(row))
+    decoded["results"] = []
+    for raw in results:
+        item = dict(raw)
+        item["metrics"] = json.loads(item.pop("metrics_json") or "{}")
+        item["folds"] = json.loads(item.pop("folds_json") or "[]")
+        item["feature_importance"] = json.loads(item.pop("feature_importance_json") or "[]")
+        item["blockers"] = json.loads(item.pop("blockers_json") or "[]")
+        with cursor() as con:
+            predictions = con.execute(
+                """SELECT epoch,day,fold,label,outcome,rr,risk_distance,predictions_json
+                   FROM research_predictions WHERE run_id=? AND trader_mode=? ORDER BY epoch""",
+                (run_id, item["trader_mode"]),
+            ).fetchall()
+        item["predictions"] = []
+        for prediction in predictions:
+            prediction_row = dict(prediction)
+            prediction_row["predictions"] = json.loads(prediction_row.pop("predictions_json") or "{}")
+            item["predictions"].append(prediction_row)
+        decoded["results"].append(item)
+    return decoded
+
+
+def list_research_runs(pair: str, limit: int = 20) -> list[dict]:
+    with cursor() as con:
+        rows = con.execute(
+            "SELECT * FROM research_runs WHERE pair=? ORDER BY created_at DESC,id DESC LIMIT ?",
+            (pair, limit),
+        ).fetchall()
+    return [_decode_research_run(dict(row)) for row in rows]
+
+
+def active_research_run(pair: str) -> dict | None:
+    with cursor() as con:
+        row = con.execute(
+            """SELECT * FROM research_runs
+               WHERE pair=? AND status IN ('queued','running')
+               ORDER BY id DESC LIMIT 1""",
+            (pair,),
+        ).fetchone()
+    return _decode_research_run(dict(row)) if row else None
+
+
+def candle_quality_rows(pair: str, timeframe: str) -> list[dict]:
+    with cursor() as con:
+        rows = con.execute(
+            """SELECT epoch,open,high,low,close,
+                      COALESCE(source,'legacy') source,
+                      COALESCE(quality_status,'unchecked') quality_status
+               FROM candles WHERE pair=? AND timeframe=? ORDER BY epoch""",
+            (pair, timeframe),
+        ).fetchall()
+    return [dict(row) for row in rows]

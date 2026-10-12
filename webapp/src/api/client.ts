@@ -14,6 +14,11 @@ import type {
   QuotesResponse,
   ReconnaissanceResponse,
   Recommendation,
+  ResearchDataStatus,
+  ResearchDataJob,
+  ResearchHistory,
+  PriceForecastRun,
+  ResearchRun,
   ScanResult,
   SettingsResponse,
   StatsResponse,
@@ -85,6 +90,56 @@ export async function fetchAiAnalysis(pair: string, tf: string, traderMode?: str
   const { data } = await api.get<AiAnalysisResponse>('/ai-analysis', {
     params: { pair, tf, trader_mode: traderMode || undefined, force_refresh: forceRefresh || undefined },
   })
+  return data
+}
+
+export async function fetchResearchDataStatus(pair = 'xauusd') {
+  const { data } = await api.get<ResearchDataStatus>('/research/data-status', { params: { pair } })
+  return data
+}
+
+export async function fetchResearchHistory(pair = 'xauusd') {
+  const { data } = await api.get<ResearchHistory>('/research/history', { params: { pair } })
+  return data
+}
+
+export async function startResearchBackfill(pair = 'xauusd', years = 2) {
+  const { data } = await api.post<ResearchDataJob>('/research/history/backfill', { pair, years })
+  return data
+}
+
+export async function fetchResearchBackfill(jobId: number) {
+  const { data } = await api.get<ResearchDataJob>(`/research/history/backfill/${jobId}`)
+  return data
+}
+
+export async function fetchPriceForecastRuns(pair = 'xauusd') {
+  const { data } = await api.get<{ pair: string; runs: PriceForecastRun[] }>('/research/price-forecast/runs', { params: { pair } })
+  return data.runs
+}
+
+export async function fetchPriceForecastRun(runId: number) {
+  const { data } = await api.get<PriceForecastRun>(`/research/price-forecast/runs/${runId}`)
+  return data
+}
+
+export async function startPriceForecast(pair = 'xauusd') {
+  const { data } = await api.post<PriceForecastRun>('/research/price-forecast/runs', { pair })
+  return data
+}
+
+export async function fetchResearchRuns(pair = 'xauusd') {
+  const { data } = await api.get<{ pair: string; runs: ResearchRun[] }>('/research/runs', { params: { pair } })
+  return data.runs
+}
+
+export async function fetchResearchRun(runId: number) {
+  const { data } = await api.get<ResearchRun>(`/research/runs/${runId}`)
+  return data
+}
+
+export async function startResearchRun(pair = 'xauusd', modes?: string[]) {
+  const { data } = await api.post<ResearchRun>('/research/runs', { pair, modes })
   return data
 }
 

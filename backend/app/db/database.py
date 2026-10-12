@@ -45,7 +45,51 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS candles (
   pair TEXT, timeframe TEXT, epoch INTEGER,
   open REAL, high REAL, low REAL, close REAL,
+  source TEXT DEFAULT 'legacy', ingested_at INTEGER, quality_status TEXT DEFAULT 'unchecked',
   PRIMARY KEY (pair, timeframe, epoch));
+
+-- Historical research inputs retain provider identity. The live candles table
+-- has one value per timestamp; research must be able to compare provider lanes
+-- without overwriting Deriv candles with Yahoo's GC=F futures proxy.
+CREATE TABLE IF NOT EXISTS research_candles (
+  pair TEXT NOT NULL,
+  timeframe TEXT NOT NULL,
+  source TEXT NOT NULL,
+  epoch INTEGER NOT NULL,
+  open REAL NOT NULL,
+  high REAL NOT NULL,
+  low REAL NOT NULL,
+  close REAL NOT NULL,
+  ingested_at INTEGER NOT NULL,
+  PRIMARY KEY (pair, timeframe, source, epoch));
+
+CREATE TABLE IF NOT EXISTS research_data_jobs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  pair TEXT NOT NULL,
+  timeframe TEXT NOT NULL,
+  status TEXT NOT NULL,
+  source TEXT,
+  years REAL NOT NULL,
+  written INTEGER DEFAULT 0,
+  message TEXT,
+  result_json TEXT,
+  error TEXT,
+  created_at INTEGER NOT NULL,
+  started_at INTEGER,
+  completed_at INTEGER);
+
+CREATE TABLE IF NOT EXISTS research_forecast_runs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  pair TEXT NOT NULL,
+  timeframe TEXT NOT NULL,
+  source TEXT NOT NULL,
+  status TEXT NOT NULL,
+  metrics_json TEXT,
+  points_json TEXT,
+  data_json TEXT,
+  error TEXT,
+  created_at INTEGER NOT NULL,
+  completed_at INTEGER);
 
 CREATE TABLE IF NOT EXISTS zones (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -197,6 +241,55 @@ CREATE TABLE IF NOT EXISTS param_overrides (
   updated_at INTEGER,
   PRIMARY KEY (scope, param));
 
+-- Offline-only model experiments. No runtime verdict or monitor code reads
+-- these tables; they are an audit trail for the Research Lab.
+CREATE TABLE IF NOT EXISTS research_runs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  pair TEXT NOT NULL,
+  modes_json TEXT NOT NULL,
+  status TEXT NOT NULL,
+  config_json TEXT,
+  data_fingerprint TEXT,
+  summary_json TEXT,
+  error TEXT,
+  created_at INTEGER NOT NULL,
+  started_at INTEGER,
+  completed_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS research_mode_results (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  run_id INTEGER NOT NULL,
+  trader_mode TEXT NOT NULL,
+  status TEXT NOT NULL,
+  sample_count INTEGER DEFAULT 0,
+  independent_days INTEGER DEFAULT 0,
+  positive_count INTEGER DEFAULT 0,
+  negative_count INTEGER DEFAULT 0,
+  censored_count INTEGER DEFAULT 0,
+  metrics_json TEXT,
+  folds_json TEXT,
+  feature_importance_json TEXT,
+  blockers_json TEXT,
+  artifact_path TEXT,
+  FOREIGN KEY(run_id) REFERENCES research_runs(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS research_predictions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  run_id INTEGER NOT NULL,
+  trader_mode TEXT NOT NULL,
+  epoch INTEGER NOT NULL,
+  day TEXT NOT NULL,
+  fold INTEGER NOT NULL,
+  label INTEGER NOT NULL,
+  outcome TEXT NOT NULL,
+  rr REAL,
+  risk_distance REAL,
+  predictions_json TEXT NOT NULL,
+  FOREIGN KEY(run_id) REFERENCES research_runs(id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_alert_events_alert ON alert_events(alert_id);
 CREATE INDEX IF NOT EXISTS idx_alerts_pair_state ON alerts(pair, state);
 CREATE INDEX IF NOT EXISTS idx_outcomes_pair ON outcomes(pair);
@@ -209,6 +302,12 @@ CREATE INDEX IF NOT EXISTS idx_connectors_updated_at ON connectors(updated_at DE
 CREATE INDEX IF NOT EXISTS idx_eod_reviews_pair_time ON eod_reviews(pair, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_recommendations_pair_status ON strategy_recommendations(pair, status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_candles_pair_tf_epoch ON candles(pair, timeframe, epoch);
+CREATE INDEX IF NOT EXISTS idx_research_candles_lookup ON research_candles(pair, timeframe, source, epoch);
+CREATE INDEX IF NOT EXISTS idx_research_data_jobs_pair_time ON research_data_jobs(pair, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_research_forecast_runs_pair_time ON research_forecast_runs(pair, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_research_runs_pair_time ON research_runs(pair, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_research_results_run ON research_mode_results(run_id, trader_mode);
+CREATE INDEX IF NOT EXISTS idx_research_predictions_run ON research_predictions(run_id, trader_mode, epoch);
 """
 
 
@@ -252,6 +351,14 @@ _MIGRATIONS = {
         # ledger reads it directly instead of (mis-)diffing consecutive balances.
         "cash": "REAL",
     },
+    "candles": {
+        "source": "TEXT DEFAULT 'legacy'",
+        "ingested_at": "INTEGER",
+        "quality_status": "TEXT DEFAULT 'unchecked'",
+    },
+    "research_mode_results": {
+        "artifact_path": "TEXT",
+    },
 }
 
 
@@ -267,6 +374,30 @@ def init_schema() -> list[str]:
     with cursor() as con:
         con.executescript(SCHEMA)
         _apply_migrations(con)
+        # Do not copy from the legacy single-provider table: older versions
+        # mislabeled some Yahoo fallback windows as Deriv. New research history
+        # is fetched with explicit provider identity instead.
+        # A process that died mid-benchmark cannot still be running after a
+        # restart. Keep the audit row and make the interruption explicit.
+        con.execute(
+            """UPDATE research_runs
+               SET status='failed', error=COALESCE(error, 'Research worker interrupted by application restart'),
+                   completed_at=COALESCE(completed_at, ?)
+               WHERE status IN ('queued', 'running')""",
+            (now(),),
+        )
+        con.execute(
+            """UPDATE research_data_jobs SET status='failed', error=COALESCE(error,'Data worker interrupted by application restart'),
+                   message='Historical data fetch interrupted by application restart', completed_at=COALESCE(completed_at,?)
+               WHERE status IN ('queued','running')""",
+            (now(),),
+        )
+        con.execute(
+            """UPDATE research_forecast_runs SET status='failed', error=COALESCE(error,'Forecast worker interrupted by application restart'),
+                   completed_at=COALESCE(completed_at,?)
+               WHERE status IN ('queued','running')""",
+            (now(),),
+        )
         con.execute(
             """INSERT OR IGNORE INTO user_settings
                (user_id, risk_pct, min_rr, max_positions, news_window_min, turtle_soup, trader_mode, ai_provider)

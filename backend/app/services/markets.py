@@ -471,7 +471,7 @@ def _persist_candles(pair: str, timeframe: str, df: pd.DataFrame) -> None:
                 "epoch": epoch, "open": float(row["open"]), "high": float(row["high"]),
                 "low": float(row["low"]), "close": float(row["close"]),
             })
-        repo.upsert_candles(pair, timeframe, rows)
+        repo.upsert_candles(pair, timeframe, rows, source=str(df.attrs.get("source") or "unknown"))
     except Exception as exc:  # pragma: no cover - defensive
         log.debug("candle persist failed pair=%s tf=%s: %s", pair, timeframe, exc)
 
@@ -481,9 +481,17 @@ def load_candle_window(pair: str, timeframe: str, start: int, end: int) -> list[
     `ticks_history` fetch, then the Yahoo fallback for real markets. Fetched
     candles are written back to the DB. Returns candle dicts ascending, or []."""
     from ..db import repo  # lazy import avoids any import-time cycle
+    # Research history keeps provider lanes separate; reuse those exact rows
+    # before making another provider request.
+    deriv_cached = repo.read_research_candles(pair, timeframe, "deriv", start, end)
+    if deriv_cached:
+        return deriv_cached
     cached = repo.read_candles(pair, timeframe, start, end)
     if cached:
         return cached
+    yahoo_cached = repo.read_research_candles(pair, timeframe, "yahoo", start, end)
+    if yahoo_cached:
+        return yahoo_cached
 
     market = market_by_id(pair)
     if market is None:
@@ -495,15 +503,23 @@ def load_candle_window(pair: str, timeframe: str, start: int, end: int) -> list[
         return []
 
     fetched: list[dict] = []
+    fetched_source: str | None = None
     if DATA_SOURCE == "deriv":
         fetched = fetch_deriv_history(market.code, granularity, start, end)
+        if fetched:
+            fetched_source = "deriv"
     if not fetched and market.fallback:
         fetched = yahoo.fetch_candles_window(market.fallback, source_tf, start, end)
+        if fetched:
+            fetched_source = "yahoo"
 
     window = [c for c in fetched if int(start) <= int(c["epoch"]) <= int(end)]
     if window:
         try:
-            repo.upsert_candles(pair, timeframe, window)
+            if fetched_source in {"deriv", "yahoo"}:
+                repo.upsert_research_candles(pair, timeframe, fetched_source, window)
+            if fetched_source == "deriv":
+                repo.upsert_candles(pair, timeframe, window, source="deriv")
         except Exception as exc:  # pragma: no cover
             log.debug("history persist failed pair=%s tf=%s: %s", pair, timeframe, exc)
     return sorted(window, key=lambda r: r["epoch"])

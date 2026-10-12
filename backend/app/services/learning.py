@@ -58,18 +58,10 @@ def ensure_current_model(pair: str, force_refresh: bool = False) -> dict:
         active = repo.latest_learning_model(pair, status="promoted")
         latest = repo.latest_learning_model(pair)
         now_ts = int(time())
-        if (
-            not force_refresh
-            and active is not None
-            and int(active.get("trained_at") or 0) + RETRAIN_SECONDS > now_ts
-        ):
-            return learning_status(pair)
-        if (
-            not force_refresh
-            and active is None
-            and latest is not None
-            and int(latest.get("trained_at") or 0) + RETRAIN_SECONDS > now_ts
-        ):
+        # Throttle against the latest ATTEMPT, not the latest promoted model.
+        # Otherwise a rejected challenger causes every API refresh to retrain
+        # again while an older promoted model remains active.
+        if not force_refresh and latest is not None and int(latest.get("trained_at") or 0) + RETRAIN_SECONDS > now_ts:
             return learning_status(pair)
         return retrain(pair)
 
@@ -140,6 +132,8 @@ def learning_status(pair: str) -> dict:
     return {
         "pair": pair,
         "enabled": pair == PAIR_SCOPE,
+        "validation_status": "legacy_unvalidated",
+        "research_only": False,
         "model_kind": MODEL_KIND,
         "active_model_version": (active or {}).get("version"),
         "active_model_status": (active or latest or {}).get("status"),

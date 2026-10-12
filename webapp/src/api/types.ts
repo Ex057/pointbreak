@@ -565,6 +565,168 @@ export interface AiAnalysisResponse {
   }
 }
 
+export interface ResearchFrameStatus {
+  rows: number
+  valid_rows: number
+  off_grid: number
+  invalid_ohlc: number
+  gaps: number
+  days: number
+  sources: Record<string, number>
+  selected_source: string
+  first_epoch?: number | null
+  last_epoch?: number | null
+}
+
+export interface ResearchDataStatus {
+  pair: string
+  model_kind: string
+  research_only: boolean
+  label_horizon_bars: number
+  journal_rows: number
+  journal_days: number
+  modes: Array<{
+    trader_mode: string
+    frames: Record<string, ResearchFrameStatus>
+    blockers: string[]
+  }>
+}
+
+export interface ResearchHistorySource {
+  rows: number
+  first_epoch: number | null
+  last_epoch: number | null
+  usable_for_forecast: boolean
+}
+
+export interface ResearchDataJob {
+  id: number
+  pair: string
+  timeframe: string
+  status: 'queued' | 'running' | 'completed' | 'failed'
+  source?: 'deriv' | 'yahoo' | null
+  years: number
+  written: number
+  message?: string | null
+  result: Record<string, unknown>
+  error?: string | null
+  created_at: number
+  started_at?: number | null
+  completed_at?: number | null
+}
+
+export interface ResearchHistory {
+  history: {
+    pair: string
+    timeframe: string
+    default_years: number
+    minimum_candles: number
+    selected_source: 'deriv' | 'yahoo' | null
+    sources: Record<'deriv' | 'yahoo', ResearchHistorySource>
+    yahoo_symbol: string
+    note?: string | null
+  }
+  active_job?: ResearchDataJob | null
+  jobs: ResearchDataJob[]
+}
+
+export interface PriceForecastRun {
+  id: number
+  pair: string
+  timeframe: string
+  source: 'deriv' | 'yahoo'
+  status: 'queued' | 'running' | 'completed' | 'inconclusive' | 'insufficient_data' | 'failed'
+  metrics: Record<string, { mse: number; mae: number; rmse: number; directional_accuracy: number; test_points: number; up_probability_brier?: number; up_probability_log_loss?: number; up_probability_roc_auc?: number | null }>
+  points: Array<{ epoch: number; actual: number; last_close: number; lightgbm?: number; hist_gradient_boosting?: number; probability_up?: number; last_close_probability_up?: number }>
+  data: {
+    source_note?: string | null
+    model_name?: string | null
+    future_forecast?: {
+      epoch: number
+      as_of_epoch: number
+      last_close: number
+      prediction: number
+      direction: 'up' | 'down' | 'flat'
+      bias: 'BUY BIAS' | 'SELL BIAS' | 'NO CLEAR EDGE'
+      probability_up: number
+      probability_down: number
+      model: string
+      intervals: Record<'50' | '90', { lower: number; upper: number }>
+      calibration_samples: number
+      stale_hours: number
+    }
+    feature_importance?: Array<{ feature: string; gain: number }>
+    model_error?: string | null
+    error?: string | null
+    [key: string]: unknown
+  }
+  error?: string | null
+  created_at: number
+  completed_at?: number | null
+}
+
+export interface ResearchModelMetrics {
+  brier: number
+  log_loss: number
+  roc_auc?: number | null
+  pr_auc?: number | null
+}
+
+export interface ResearchModeResult {
+  trader_mode: string
+  status: 'insufficient_data' | 'inconclusive' | 'qualified_for_shadow'
+  sample_count: number
+  independent_days: number
+  positive_count: number
+  negative_count: number
+  censored_count: number
+  metrics: Record<string, ResearchModelMetrics> & {
+    qualification?: {
+      best_baseline_brier?: number | null
+      lightgbm_relative_brier_improvement?: number | null
+      lightgbm_minus_baseline_brier_day_bootstrap_95ci?: number[] | null
+      required_improvement?: number
+    }
+    lightgbm_net_r_after_spread?: number
+  }
+  folds: Array<{
+    fold: number
+    train_samples: number
+    test_samples: number
+    train_end: string
+    test_start: string
+    test_end: string
+    metrics: Record<string, ResearchModelMetrics>
+  }>
+  feature_importance: Array<{ feature: string; gain: number }>
+  predictions?: Array<{
+    epoch: number
+    day: string
+    fold: number
+    label: 0 | 1
+    outcome: string
+    rr?: number | null
+    risk_distance?: number | null
+    predictions: Record<string, number>
+  }>
+  blockers: string[]
+}
+
+export interface ResearchRun {
+  id: number
+  pair: string
+  modes: string[]
+  status: 'queued' | 'running' | 'completed' | 'failed'
+  config: Record<string, unknown>
+  summary: { research_only?: boolean; qualified_modes?: string[]; inconclusive_modes?: string[] }
+  error?: string | null
+  data_fingerprint?: string | null
+  created_at: number
+  started_at?: number | null
+  completed_at?: number | null
+  results?: ResearchModeResult[]
+}
+
 export interface RescanMeta {
   last_recheck_reason?: string | null
   next_recheck_at: number

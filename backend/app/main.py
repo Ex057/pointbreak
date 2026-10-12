@@ -31,6 +31,9 @@ from .services.markets import (
 )
 from .services.monitor import monitor
 from .services import ai_analysis, execution, learning, reconnaissance, topdown, verdict as verdict_service
+from .research import setup_quality as research_lab
+from .research import data as research_data
+from .research import price_forecast
 from .services.scan import scan as run_scan
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -365,6 +368,20 @@ class UpdateSettings(BaseModel):
     auto_apply: bool | None = None
 
 
+class ResearchRunRequest(BaseModel):
+    pair: str = "xauusd"
+    modes: list[str] | None = None
+
+
+class ResearchBackfillRequest(BaseModel):
+    pair: str = "xauusd"
+    years: float = 2.0
+
+
+class ResearchPairRequest(BaseModel):
+    pair: str = "xauusd"
+
+
 @app.put("/settings")
 def update_settings(body: UpdateSettings):
     fields = {}
@@ -444,6 +461,91 @@ def ai_analyst(
 def learning_status(pair: str = Query(...), force_refresh: bool = Query(False)):
     market = _pair_entry(pair)
     return learning.ensure_current_model(market.id, force_refresh=force_refresh)
+
+
+# ---- offline setup-quality research ---------------------------------------
+@app.get("/research/data-status")
+def research_data_status(pair: str = Query("xauusd")):
+    market = _pair_entry(pair)
+    if market.id != research_lab.PAIR_SCOPE:
+        raise HTTPException(422, {"code": "research_scope", "message": "The first research benchmark is scoped to XAU/USD."})
+    return research_lab.data_status(market.id)
+
+
+@app.get("/research/history")
+def research_history(pair: str = Query("xauusd")):
+    market = _pair_entry(pair)
+    if market.id != research_lab.PAIR_SCOPE:
+        raise HTTPException(422, {"code": "research_scope", "message": "Research history is scoped to XAU/USD."})
+    return {
+        "history": research_data.history_status(market.id),
+        "active_job": repo.active_research_data_job(market.id),
+        "jobs": research_data.list_backfills(market.id),
+    }
+
+
+@app.post("/research/history/backfill", status_code=202)
+def start_research_backfill(body: ResearchBackfillRequest):
+    market = _pair_entry(body.pair)
+    try:
+        return research_data.start_backfill(market.id, body.years)
+    except ValueError as exc:
+        raise HTTPException(422, {"code": "invalid_research_backfill", "message": str(exc)})
+
+
+@app.get("/research/history/backfill/{job_id}")
+def research_backfill_job(job_id: int):
+    row = research_data.get_backfill(job_id)
+    if row is None:
+        raise HTTPException(404, {"code": "unknown_research_data_job", "message": f"No data job {job_id}."})
+    return row
+
+
+@app.get("/research/runs")
+def research_runs(pair: str = Query("xauusd"), limit: int = Query(20, ge=1, le=100)):
+    market = _pair_entry(pair)
+    return {"pair": market.id, "runs": repo.list_research_runs(market.id, limit=limit)}
+
+
+@app.get("/research/runs/{run_id}")
+def research_run(run_id: int):
+    row = repo.get_research_run(run_id)
+    if row is None:
+        raise HTTPException(404, {"code": "unknown_research_run", "message": f"No research run {run_id}."})
+    return row
+
+
+@app.post("/research/runs", status_code=202)
+def start_research_run(body: ResearchRunRequest):
+    market = _pair_entry(body.pair)
+    modes = body.modes or list(topdown.TRADER_MODES)
+    try:
+        return research_lab.start_run(market.id, modes)
+    except ValueError as exc:
+        raise HTTPException(422, {"code": "invalid_research_request", "message": str(exc)})
+
+
+@app.get("/research/price-forecast/runs")
+def research_price_forecast_runs(pair: str = Query("xauusd"), limit: int = Query(20, ge=1, le=100)):
+    market = _pair_entry(pair)
+    return {"pair": market.id, "runs": price_forecast.list_runs(market.id, limit)}
+
+
+@app.post("/research/price-forecast/runs", status_code=202)
+def start_research_price_forecast(body: ResearchPairRequest):
+    market = _pair_entry(body.pair)
+    try:
+        return price_forecast.start_run(market.id)
+    except ValueError as exc:
+        raise HTTPException(422, {"code": "invalid_price_forecast", "message": str(exc)})
+
+
+@app.get("/research/price-forecast/runs/{run_id}")
+def research_price_forecast_run(run_id: int):
+    row = price_forecast.get_run(run_id)
+    if row is None:
+        raise HTTPException(404, {"code": "unknown_price_forecast_run", "message": f"No price forecast run {run_id}."})
+    return row
 
 
 # ---- end-of-day what-if review + strategy recommendations -----------------

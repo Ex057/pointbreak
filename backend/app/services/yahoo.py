@@ -160,6 +160,33 @@ def fetch_candles_window(symbol: str, timeframe: str, start: int, end: int) -> l
     return out
 
 
+def fetch_research_hourly_window(symbol: str, start: int, end: int) -> list[dict]:
+    """Fetch an untruncated Yahoo 1H research window (GC=F for XAU fallback).
+
+    The normal live-candle cache is deliberately capped at 300 bars. Research
+    asks for a larger bounded 3-month chart response so a chronological holdout
+    can be formed; Yahoo may still return less history, which coverage reports.
+    """
+    url = f"{_BASE}{urllib.parse.quote(symbol)}?interval=60m&range=3mo"
+    try:
+        data = _get(url)
+        result = data["chart"]["result"][0]
+        timestamps = result.get("timestamp") or []
+        quote = result["indicators"]["quote"][0]
+        rows = []
+        for index, epoch in enumerate(timestamps):
+            if int(epoch) < int(start) or int(epoch) > int(end):
+                continue
+            values = [quote[key][index] for key in ("open", "high", "low", "close")]
+            if any(value is None for value in values):
+                continue
+            rows.append({"epoch": int(epoch), "open": values[0], "high": values[1], "low": values[2], "close": values[3]})
+        return rows
+    except Exception as exc:  # network, provider response, or retention failure
+        log.warning("yahoo research fetch failed symbol=%s: %s", symbol, exc)
+        return []
+
+
 def fetch_price_record(symbol: str) -> dict | None:
     """Latest Yahoo quote with honest provider and receipt timestamps."""
     cached = _price_cache.get(symbol)

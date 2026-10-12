@@ -36,6 +36,7 @@ def test_backfill_pages_backwards_until_history_runs_out():
     rows = repo.read_candles("xauusd", "1H", limit=100000)
     assert len(rows) > 1000
     assert rows == sorted(rows, key=lambda r: r["epoch"])
+    assert len(repo.read_research_candles("xauusd", "1H", "deriv")) >= res.written
 
 
 def test_backfill_reports_day_coverage_change():
